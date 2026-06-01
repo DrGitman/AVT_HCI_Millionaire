@@ -5,14 +5,7 @@ from alembic import context
 from app.database import Base
 from app.config import get_settings
 
-import app.models.user              # noqa: F401
-import app.models.question          # noqa: F401
-import app.models.citation          # noqa: F401
-import app.models.game_session      # noqa: F401
-import app.models.game_player       # noqa: F401
-import app.models.user_progress     # noqa: F401
-import app.models.leaderboard_entry # noqa: F401
-import app.models.achievement       # noqa: F401
+import app.models  # noqa: F401
 
 config = context.config
 settings = get_settings()

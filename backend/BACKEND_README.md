@@ -67,6 +67,34 @@ Enter. Find the service named postgresql-x64-XX, right-click it, and select Stop
 The disable command on Ubuntu and Mac prevents PostgreSQL from starting again automatically
 on the next reboot. You only need to run it once.
 
+## Running migrations for the first time
+
+Start the containers, open a shell inside the backend container, set the
+PYTHONPATH, then generate and apply the migration.
+
+    docker compose up -d db adminer backend
+    docker compose exec backend bash
+
+    export PYTHONPATH=/app
+
+    alembic revision --autogenerate -m "initial schema from Leonard design"
+    alembic upgrade head
+    exit
+
+Open Adminer at http://localhost:9090 and confirm that all 10 tables are
+visible in the hci_millionaire database.
+
+    Category
+    PrizeLevel
+    Question
+    Answer
+    PhoneAPeerHint
+    CourseNoteHint
+    Player
+    Game
+    GameCategory
+    PlayerGameAnswer
+
 
 ## Step 4 — First launch
 
