@@ -10,7 +10,6 @@ class Game(Base):
     GameId: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     gameCode: Mapped[str] = mapped_column(String, unique=True, nullable=False)
 
-    # Players — player1 is mandatory, others are optional (multiplayer)
     player1: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("Player.PlayerId", deferrable=True, initially="IMMEDIATE"),
@@ -37,8 +36,8 @@ class Game(Base):
         nullable=True
     )
 
-    # status values: 'active', 'completed', 'abandoned'
-    status: Mapped[str] = mapped_column(String, default="active", nullable=False)
+    # status: 'waiting' | 'active' | 'completed' | 'abandoned'
+    status: Mapped[str] = mapped_column(String, default="waiting", nullable=False)
     startTime: Mapped[DateTime | None] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=True
     )
@@ -47,26 +46,19 @@ class Game(Base):
     )
 
     # Relationships
-    player1_ref: Mapped["Player"] = relationship(
-        "Player", foreign_keys=[player1]
-    )
-    player2_ref: Mapped["Player | None"] = relationship(
-        "Player", foreign_keys=[player2]
-    )
-    player3_ref: Mapped["Player | None"] = relationship(
-        "Player", foreign_keys=[player3]
-    )
-    player4_ref: Mapped["Player | None"] = relationship(
-        "Player", foreign_keys=[player4]
-    )
-    winner_ref: Mapped["Player | None"] = relationship(
-        "Player", foreign_keys=[winner]
-    )
+    player1_ref: Mapped["Player"] = relationship("Player", foreign_keys=[player1])
+    player2_ref: Mapped["Player | None"] = relationship("Player", foreign_keys=[player2])
+    player3_ref: Mapped["Player | None"] = relationship("Player", foreign_keys=[player3])
+    player4_ref: Mapped["Player | None"] = relationship("Player", foreign_keys=[player4])
+    winner_ref: Mapped["Player | None"] = relationship("Player", foreign_keys=[winner])
     game_categories: Mapped[list["GameCategory"]] = relationship(
         "GameCategory", back_populates="game", cascade="all, delete-orphan"
     )
     player_answers: Mapped[list["PlayerGameAnswer"]] = relationship(
         "PlayerGameAnswer", back_populates="game", cascade="all, delete-orphan"
+    )
+    ask_the_class_votes: Mapped[list["AskTheClassVote"]] = relationship(
+        "AskTheClassVote", back_populates="game", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

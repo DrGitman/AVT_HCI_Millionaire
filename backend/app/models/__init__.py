@@ -8,6 +8,8 @@ from app.models.player import Player
 from app.models.game import Game
 from app.models.game_category import GameCategory
 from app.models.player_game_answer import PlayerGameAnswer
+from app.models.ask_the_class_vote import AskTheClassVote
+from app.models.leaderboard import Leaderboard
 
 __all__ = [
     "Category",
@@ -20,4 +22,6 @@ __all__ = [
     "Game",
     "GameCategory",
     "PlayerGameAnswer",
+    "AskTheClassVote",
+    "Leaderboard",
 ]

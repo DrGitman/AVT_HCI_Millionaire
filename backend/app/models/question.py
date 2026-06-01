@@ -34,6 +34,10 @@ class Question(Base):
     player_answers: Mapped[list["PlayerGameAnswer"]] = relationship(
         "PlayerGameAnswer", back_populates="question"
     )
+    ask_the_class_votes: Mapped[list["AskTheClassVote"]] = relationship(
+        "AskTheClassVote",
+        back_populates="question"
+    )
 
     def __repr__(self) -> str:
         return f"<Question id={self.QuestionId} code={self.questionCode}>"
