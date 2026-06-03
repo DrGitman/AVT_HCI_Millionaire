@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button, Checkbox, PasswordField } from '../components'
 import { User, Mail } from 'lucide-react'
+import { ROUTES } from '../navigation/routes'
 
 const SignUpPage = ({ onNavigate }) => {
   const [formData, setFormData] = useState({
@@ -31,7 +32,7 @@ const SignUpPage = ({ onNavigate }) => {
       setIsLoading(true)
       setTimeout(() => {
         setIsLoading(false)
-        console.log('Sign Up:', formData)
+        onNavigate(ROUTES.HOME)
       }, 1000)
     }
   }
@@ -201,7 +202,7 @@ const SignUpPage = ({ onNavigate }) => {
               whileHover={{ scale: 1.02 }}
               type="button"
               id="signup-to-login-link"
-              onClick={() => onNavigate('login')}
+              onClick={() => onNavigate(ROUTES.LOGIN)}
               className="text-[#E05B2D] hover:text-[#F27A52] font-bold transition-colors ml-1"
             >
               Log In

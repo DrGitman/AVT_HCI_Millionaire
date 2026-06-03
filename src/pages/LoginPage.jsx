@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button, Checkbox, PasswordField } from '../components'
 import { Mail } from 'lucide-react'
+import { ROUTES } from '../navigation/routes'
 
 const LoginPage = ({ onNavigate }) => {
   const [email, setEmail] = useState('')
@@ -24,7 +25,7 @@ const LoginPage = ({ onNavigate }) => {
       setIsLoading(true)
       setTimeout(() => {
         setIsLoading(false)
-        console.log('Login:', { email, password, rememberMe })
+        onNavigate(ROUTES.HOME)
       }, 1000)
     }
   }
@@ -156,7 +157,7 @@ const LoginPage = ({ onNavigate }) => {
               whileHover={{ scale: 1.02 }}
               type="button"
               id="login-to-signup-link"
-              onClick={() => onNavigate('signup')}
+              onClick={() => onNavigate(ROUTES.SIGNUP)}
               className="text-[#E05B2D] hover:text-[#F27A52] font-bold transition-colors ml-1"
             >
               Create A Profile
