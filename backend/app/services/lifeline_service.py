@@ -2,7 +2,6 @@ import uuid
 import random
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 from app.models.player import Player
 from app.models.question import Question
 from app.models.answer import Answer
@@ -21,27 +20,24 @@ def use_fifty_fifty(
     if not player.lifeLine5050:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="50/50 lifeline already used"
+            detail="50/50 lifeline already used",
         )
 
-    question = _get_question_or_404(question_id, db)
+    _get_question_or_404(question_id, db)
+
     correct = db.query(Answer).filter(
         Answer.QuestionId == question_id,
-        Answer.isCorrect == True
+        Answer.isCorrect == True,
     ).first()
-    wrong = db.query(Answer).filter(
+
+    wrong_answers = db.query(Answer).filter(
         Answer.QuestionId == question_id,
-        Answer.isCorrect == False
+        Answer.isCorrect == False,
     ).all()
 
-    # Keep correct + 1 random wrong answer
-    kept_wrong = random.choice(wrong)
+    kept_wrong = random.choice(wrong_answers)
     remaining = [correct.AnswerId, kept_wrong.AnswerId]
 
-    db.execute(
-        text("CALL sp_UseLifeline(:player_id, '5050')"),
-        {"player_id": player.PlayerId}
-    )
     player.lifeLine5050 = False
     db.commit()
 
@@ -54,25 +50,22 @@ def use_sage_hint(
     if not player.lifeLineNotes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Course Notes (Sage) lifeline already used"
+            detail="Sayings of the Sage lifeline already used",
         )
 
     question = _get_question_or_404(question_id, db)
+
     hint = db.query(CourseNoteHint).filter(
         CourseNoteHint.QuestionId == question_id,
-        CourseNoteHint.isActive == True
+        CourseNoteHint.isActive == True,
     ).first()
 
     if not hint:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No sage hint available for this question"
+            detail="No sage hint available for this question",
         )
 
-    db.execute(
-        text("CALL sp_UseLifeline(:player_id, 'notes')"),
-        {"player_id": player.PlayerId}
-    )
     player.lifeLineNotes = False
     player.lifeLineNotesResult = hint.CourseNoteHintId
     db.commit()
@@ -80,6 +73,7 @@ def use_sage_hint(
     return SageHintResponse(
         QuestionId=question_id,
         hintText=hint.noteText,
+        philosophy="Philosophical Sagacity",
         category=question.category.name,
     )
 
@@ -90,25 +84,22 @@ def use_phone_a_peer(
     if not player.lifeLinePhone:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phone a Peer lifeline already used"
+            detail="Phone a Peer lifeline already used",
         )
 
-    question = _get_question_or_404(question_id, db)
+    _get_question_or_404(question_id, db)
+
     hint = db.query(PhoneAPeerHint).filter(
         PhoneAPeerHint.QuestionId == question_id,
-        PhoneAPeerHint.isActive == True
+        PhoneAPeerHint.isActive == True,
     ).first()
 
     if not hint:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No phone hint available for this question"
+            detail="No phone hint available for this question",
         )
 
-    db.execute(
-        text("CALL sp_UseLifeline(:player_id, 'phone')"),
-        {"player_id": player.PlayerId}
-    )
     player.lifeLinePhone = False
     player.lifeLinePhoneResult = hint.PhoneAPeerHintId
     db.commit()
@@ -123,21 +114,24 @@ def use_phone_a_peer(
 def submit_ask_the_class_vote(
     request: AskTheClassVoteRequest, player: Player, db: Session
 ) -> AskTheClassResultResponse:
-    # Record this player's vote
-    vote = AskTheClassVote(
-        voteCode=str(uuid.uuid4()),
-        GameId=request.GameId,
-        QuestionId=request.QuestionId,
-        AnswerId=request.AnswerId,
-        PlayerId=player.PlayerId,
-    )
-    db.add(vote)
+    # Check if this player already voted for this question in this game
+    existing = db.query(AskTheClassVote).filter(
+        AskTheClassVote.GameId == request.GameId,
+        AskTheClassVote.QuestionId == request.QuestionId,
+        AskTheClassVote.PlayerId == player.PlayerId,
+    ).first()
+
+    if not existing:
+        vote = AskTheClassVote(
+            voteCode=str(uuid.uuid4()),
+            GameId=request.GameId,
+            QuestionId=request.QuestionId,
+            AnswerId=request.AnswerId,
+            PlayerId=player.PlayerId,
+        )
+        db.add(vote)
 
     if player.lifeLineAskClass:
-        db.execute(
-            text("CALL sp_UseLifeline(:player_id, 'askclass')"),
-            {"player_id": player.PlayerId}
-        )
         player.lifeLineAskClass = False
 
     db.commit()
@@ -168,6 +162,6 @@ def _get_question_or_404(question_id: int, db: Session) -> Question:
     if not question:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Question not found"
+            detail="Question not found",
         )
     return question

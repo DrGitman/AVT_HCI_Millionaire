@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from app.config import get_settings
 from app.database import engine, Base
 
-from app.routes import auth, users, questions, game, lifelines, leaderboard
+from app.routes import auth, users, questions, game, lifelines, leaderboard, achievements
 from app.websockets.game_ws import router as ws_router
 
 settings = get_settings()
@@ -47,7 +47,8 @@ app.include_router(users.router,       prefix="/users",       tags=["Users"])
 app.include_router(questions.router,   prefix="/questions",   tags=["Questions"])
 app.include_router(game.router,        prefix="/game",        tags=["Game"])
 app.include_router(lifelines.router,   prefix="/lifelines",   tags=["Lifelines"])
-app.include_router(leaderboard.router, prefix="/leaderboard", tags=["Leaderboard"])
+app.include_router(leaderboard.router,   prefix="/leaderboard",   tags=["Leaderboard"])
+app.include_router(achievements.router,  prefix="/achievements",  tags=["Achievements"])
 app.include_router(ws_router,          prefix="/ws",          tags=["WebSocket"])
 
 
