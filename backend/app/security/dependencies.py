@@ -7,7 +7,6 @@ from app.models.player import Player
 
 bearer_scheme = HTTPBearer()
 
-
 def get_current_player(
         credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
         db: Session = Depends(get_db)

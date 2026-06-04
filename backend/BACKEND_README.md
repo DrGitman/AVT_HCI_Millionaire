@@ -79,6 +79,7 @@ PYTHONPATH, then generate and apply the migration.
 
     alembic revision --autogenerate -m "initial schema from Leonard design"
     alembic upgrade head
+    python seed_data.py
     exit
 
 Open Adminer at http://localhost:9090 and confirm that all 10 tables are
