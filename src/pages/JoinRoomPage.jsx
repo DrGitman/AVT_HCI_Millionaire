@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../navigation/routes'
 import { AppNavBar } from '../components/AppNavBar'
+import { getNavActive } from '../navigation/navActive'
 
 const JoinRoomPage = ({ onNavigate }) => {
   const [roomCode, setRoomCode] = useState(['', '', '', '', '', ''])
@@ -31,7 +32,7 @@ const JoinRoomPage = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-[#120d0c]">
-      <AppNavBar active={ROUTES.MULTIPLAYER} onNavigate={onNavigate} />
+      <AppNavBar active={getNavActive(ROUTES.JOIN_ROOM)} onNavigate={onNavigate} />
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-16 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
         {/* Badge */}
         <motion.div

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Search, MoreHorizontal } from 'lucide-react'
 import { AppNavBar } from '../components/AppNavBar'
 import { ROUTES } from '../navigation/routes'
+import { getNavActive } from '../navigation/navActive'
 
 const SCHOLARS = [
   {
@@ -73,7 +74,7 @@ const LeaderboardPage = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-[#120d0c]">
-      <AppNavBar active={ROUTES.HOME} onNavigate={onNavigate} />
+      <AppNavBar active={getNavActive(ROUTES.LEADERBOARD)} onNavigate={onNavigate} />
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 md:py-12">
         {/* Header row */}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-8">

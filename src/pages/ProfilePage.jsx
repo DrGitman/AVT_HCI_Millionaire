@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { AppNavBar } from '../components/AppNavBar'
 import { ROUTES } from '../navigation/routes'
+import { getNavActive } from '../navigation/navActive'
 
 const STATS = [
   { value: '$14,500,000', label: 'PRESTIGE POINTS' },
@@ -48,7 +49,7 @@ const LINKS = [
 
 const ProfilePage = ({ onNavigate }) => (
   <div id="profile-page" className="min-h-screen bg-[#1a1110]">
-    <AppNavBar active={ROUTES.HOME} onNavigate={onNavigate} />
+    <AppNavBar active={getNavActive(ROUTES.PROFILE)} onNavigate={onNavigate} />
 
     <div className="max-w-container mx-auto px-4 md:px-8 pb-12">
       <motion.div

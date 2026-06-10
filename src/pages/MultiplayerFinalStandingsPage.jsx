@@ -3,6 +3,7 @@ import { RefreshCw, Eye, Share2 } from 'lucide-react'
 import { ROUTES } from '../navigation/routes'
 import { AppNavBar } from '../components/AppNavBar'
 import { motion } from 'framer-motion'
+import { getNavActive } from '../navigation/navActive'
 
 const PODIUM = [
   {
@@ -52,7 +53,7 @@ const MultiplayerFinalStandingsPage = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-[#1a120b] text-[#F5F2F0]">
       <div className="h-1 bg-gradient-to-r from-transparent via-[#F0A844]/50 to-transparent" />
-      <AppNavBar active={ROUTES.HOME} onNavigate={onNavigate} />
+      <AppNavBar active={getNavActive(ROUTES.MULTIPLAYER_STANDINGS)} onNavigate={onNavigate} />
 
       <div className="max-w-4xl mx-auto px-4 py-10">
         <motion.div

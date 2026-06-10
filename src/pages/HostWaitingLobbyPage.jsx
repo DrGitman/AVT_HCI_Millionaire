@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Copy, Check, Zap, Clock, BookOpen } from 'lucide-react'
 import { AppNavBar } from '../components/AppNavBar'
 import { ROUTES } from '../navigation/routes'
+import { getNavActive } from '../navigation/navActive'
 
 const HostWaitingLobbyPage = ({ onNavigate }) => {
   const [copied, setCopied] = useState(false)
@@ -17,7 +18,7 @@ const HostWaitingLobbyPage = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-[#120d0b] text-[#F5F2F0]">
       <div className="h-1 bg-gradient-to-r from-transparent via-[#F0A844]/50 to-transparent" />
-      <AppNavBar active={ROUTES.MULTIPLAYER} onNavigate={onNavigate} />
+      <AppNavBar active={getNavActive(ROUTES.HOST_LOBBY)} onNavigate={onNavigate} />
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex justify-center mb-6">

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Play, BookOpen, BarChart3, User } from 'lucide-react'
 import { AppNavBar } from '../components/AppNavBar'
 import { ROUTES } from '../navigation/routes'
+import { getNavActive } from '../navigation/navActive'
 
 const MENU_TILES = [
   {
@@ -44,7 +45,7 @@ const MENU_TILES = [
 
 const HomePage = ({ onNavigate }) => (
   <div id="home-page" className="min-h-screen bg-[#1a1210] flex flex-col">
-    <AppNavBar active={ROUTES.HOME} onNavigate={onNavigate} />
+    <AppNavBar active={getNavActive(ROUTES.HOME)} onNavigate={onNavigate} />
 
     <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 md:py-10">
       {/* Hero circle */}

@@ -3,6 +3,7 @@ import { RotateCcw, Eye, Share2 } from 'lucide-react'
 import { AppNavBar } from '../components/AppNavBar'
 import { Button } from '../components'
 import { ROUTES } from '../navigation/routes'
+import { getNavActive } from '../navigation/navActive'
 
 const STATS = [
   { label: 'FINAL PRIZE', value: '$1,000,000', accent: true },
@@ -12,7 +13,7 @@ const STATS = [
 
 const VictoryPage = ({ onNavigate }) => (
   <div className="min-h-screen bg-[#1a0f0e]">
-    <AppNavBar active={ROUTES.HOME} onNavigate={onNavigate} />
+    <AppNavBar active={getNavActive(ROUTES.VICTORY)} onNavigate={onNavigate} />
 
     <div className="max-w-3xl mx-auto px-4 py-8 text-center">
       <motion.div

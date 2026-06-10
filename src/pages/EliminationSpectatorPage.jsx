@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Play, XCircle } from 'lucide-react'
 import { AppNavBar } from '../components/AppNavBar'
 import { ROUTES } from '../navigation/routes'
+import { getNavActive } from '../navigation/navActive'
 
 const EliminationSpectatorPage = ({ onNavigate }) => {
   const [spectating, setSpectating] = useState(false)
@@ -10,7 +11,7 @@ const EliminationSpectatorPage = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-[#120d0b] text-[#F5F2F0]">
       <div className="h-1 bg-gradient-to-r from-transparent via-red-500/60 to-transparent" />
-      <AppNavBar active={ROUTES.MULTIPLAYER} onNavigate={onNavigate} />
+      <AppNavBar active={getNavActive(ROUTES.ELIMINATION_SPECTATOR)} onNavigate={onNavigate} />
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex justify-center mb-6">

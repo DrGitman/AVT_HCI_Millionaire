@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../navigation/routes'
 import { AppNavBar } from '../components/AppNavBar'
+import { getNavActive } from '../navigation/navActive'
 import {
   BookOpen,
   Scale,
@@ -68,7 +69,7 @@ const ThemesPage = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-[#120d0c]">
-      <AppNavBar active={ROUTES.THEMES} onNavigate={onNavigate} />
+      <AppNavBar active={getNavActive(ROUTES.THEMES)} onNavigate={onNavigate} />
 
       <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
         <motion.div

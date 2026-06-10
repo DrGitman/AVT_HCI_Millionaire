@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../navigation/routes'
 import { AppNavBar } from '../components/AppNavBar'
+import { getNavActive } from '../navigation/navActive'
 import { ChevronRight } from 'lucide-react'
 
 const CreateRoomPage = ({ onNavigate }) => {
@@ -43,7 +44,7 @@ const CreateRoomPage = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-[#120d0c]">
-      <AppNavBar active={ROUTES.MULTIPLAYER} onNavigate={onNavigate} />
+      <AppNavBar active={getNavActive(ROUTES.CREATE_ROOM)} onNavigate={onNavigate} />
       <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
         {/* Badge */}
         <motion.div

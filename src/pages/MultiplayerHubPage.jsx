@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion'
 import { ROUTES } from '../navigation/routes'
 import { AppNavBar } from '../components/AppNavBar'
+import { getNavActive } from '../navigation/navActive'
 import { Users, Plus } from 'lucide-react'
 
 const MultiplayerHubPage = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-[#120d0c]">
-      <AppNavBar active={ROUTES.MULTIPLAYER} onNavigate={onNavigate} />
+      <AppNavBar active={getNavActive(ROUTES.MULTIPLAYER)} onNavigate={onNavigate} />
       <div className="max-w-4xl mx-auto px-4 py-16 md:py-24 flex flex-col items-center justify-center min-h-[calc(100vh-80px)]">
         {/* Icon */}
         <motion.div
