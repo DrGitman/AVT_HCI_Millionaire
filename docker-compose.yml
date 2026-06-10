@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16
+    container_name: hci-millionaire-db
+    environment:
+      POSTGRES_USER: hci_user
+      POSTGRES_PASSWORD: hci_pass
+      POSTGRES_DB: hci_millionaire
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d:ro
+      - .:/workspace:ro
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: hci-millionaire-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hci.local
+      PGADMIN_DEFAULT_PASSWORD: pgadmin123
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+  backend:
+    build:
+      context: ./AVT_HCI_Millionaire-backend/AVT_HCI_Millionaire-backend/backend
+    container_name: hci-millionaire-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg2://hci_user:hci_pass@db:5432/hci_millionaire
+      JWT_SECRET_KEY: dev-hci-millionaire-secret
+      CORS_ORIGINS: http://localhost:5173
+      APP_ENV: development
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./AVT_HCI_Millionaire-backend/AVT_HCI_Millionaire-backend/backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./AVT_HCI_Millionaire-frontend/AVT_HCI_Millionaire-frontend
+    container_name: hci-millionaire-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./AVT_HCI_Millionaire-frontend/AVT_HCI_Millionaire-frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:

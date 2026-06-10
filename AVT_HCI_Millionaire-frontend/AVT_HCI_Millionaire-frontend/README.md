@@ -16,37 +16,3 @@ Modelled after the classic *Who Wants to Be a Millionaire?* framework, this plat
 * Amaury Cansa
 * Kristofina Shipalanga
 * Leonard Ashikoto
-
-## Unified Project Layout
-```text
-HCI Millionaire Project/
-|-- docker-compose.yml
-|-- database/
-|   |-- 01_schema.sql
-|   |-- 02_functions.sql
-|   |-- 03_triggers.sql
-|   |-- 04_procedures.sql
-|   |-- 05_seed.sql
-|   +-- README.md
-|-- AVT_HCI_Millionaire-backend/
-|   +-- AVT_HCI_Millionaire-backend/backend/
-|       |-- app/
-|       +-- .env.example
-|-- AVT_HCI_Millionaire-frontend/
-|   +-- AVT_HCI_Millionaire-frontend/
-|       |-- src/
-|       |-- Dockerfile
-|       +-- .env.example
-```
-
-## Local Stack
-* PostgreSQL: `hci_millionaire`
-* DB user: `hci_user`
-* DB password: `hci_pass`
-* pgAdmin: `admin@hci.local` / `pgadmin123`
-
-## Run
-* Start everything with `docker compose up --build`
-* Frontend: `http://localhost:5173`
-* Backend: `http://localhost:8000`
-* pgAdmin: `http://localhost:5050`
