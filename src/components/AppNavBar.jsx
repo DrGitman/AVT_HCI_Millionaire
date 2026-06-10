@@ -4,8 +4,8 @@ import { ROUTES } from '../navigation/routes'
 
 const NAV_ITEMS = [
   { id: ROUTES.HOME, label: 'HOME' },
-  { id: ROUTES.LEARN_HUB, label: 'THEMES' },
-  { id: ROUTES.GAME, label: 'MULTIPLAYER' },
+  { id: ROUTES.THEMES, label: 'THEMES' },
+  { id: ROUTES.MULTIPLAYER, label: 'MULTIPLAYER' },
 ]
 
 export const AppNavBar = ({ active = ROUTES.HOME, onNavigate }) => {

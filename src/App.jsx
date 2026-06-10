@@ -12,6 +12,16 @@ import NotificationsPage from './pages/NotificationsPage'
 import GamePage from './pages/GamePage'
 import SettingsPage from './pages/SettingsPage'
 import VictoryPage from './pages/VictoryPage'
+import ThemesPage from './pages/ThemesPage'
+import JoinRoomPage from './pages/JoinRoomPage'
+import CreateRoomPage from './pages/CreateRoomPage'
+import MultiplayerHubPage from './pages/MultiplayerHubPage'
+import GuestWaitingLobbyPage from './pages/GuestWaitingLobbyPage'
+import HostWaitingLobbyPage from './pages/HostWaitingLobbyPage'
+import MultiplayerGamePage from './pages/MultiplayerGamePage'
+import EliminationSpectatorPage from './pages/EliminationSpectatorPage'
+import MultiplayerFinalStandingsPage from './pages/MultiplayerFinalStandingsPage'
+import MultiplayerReviewPage from './pages/MultiplayerReviewPage'
 import './App.css'
 
 function App() {
@@ -36,6 +46,14 @@ function App() {
         return <SignUpPage onNavigate={onNavigate} />
       case ROUTES.HOME:
         return <HomePage onNavigate={onNavigate} />
+      case ROUTES.THEMES:
+        return <ThemesPage onNavigate={onNavigate} />
+      case ROUTES.MULTIPLAYER:
+        return <MultiplayerHubPage onNavigate={onNavigate} />
+      case ROUTES.JOIN_ROOM:
+        return <JoinRoomPage onNavigate={onNavigate} />
+      case ROUTES.CREATE_ROOM:
+        return <CreateRoomPage onNavigate={onNavigate} />
       case ROUTES.PROFILE:
         return <ProfilePage onNavigate={onNavigate} />
       case ROUTES.LEADERBOARD:
@@ -57,6 +75,18 @@ function App() {
         return <SettingsPage onNavigate={onNavigate} />
       case ROUTES.VICTORY:
         return <VictoryPage onNavigate={onNavigate} />
+      case ROUTES.GUEST_LOBBY:
+        return <GuestWaitingLobbyPage onNavigate={onNavigate} />
+      case ROUTES.HOST_LOBBY:
+        return <HostWaitingLobbyPage onNavigate={onNavigate} />
+      case ROUTES.MULTIPLAYER_GAME:
+        return <MultiplayerGamePage onNavigate={onNavigate} />
+      case ROUTES.ELIMINATION_SPECTATOR:
+        return <EliminationSpectatorPage onNavigate={onNavigate} />
+      case ROUTES.MULTIPLAYER_STANDINGS:
+        return <MultiplayerFinalStandingsPage onNavigate={onNavigate} />
+      case ROUTES.MULTIPLAYER_REVIEW:
+        return <MultiplayerReviewPage onNavigate={onNavigate} />
       default:
         return <LoginPage onNavigate={onNavigate} />
     }

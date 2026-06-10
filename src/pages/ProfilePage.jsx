@@ -25,23 +25,18 @@ const ACHIEVEMENTS = [
     description: 'Acknowledged for collaborative ethics in design evaluation.',
     unlocked: true,
     icon: Users,
-    route: ROUTES.TOPIC_DETAIL,
-    params: { topicId: 'ubuntu' },
   },
   {
     title: 'SAGACITY PRACTITIONER',
     description: 'Expert-level pattern recognition in HCI heuristics.',
     unlocked: true,
     icon: Trophy,
-    route: ROUTES.TOPIC_DETAIL,
-    params: { topicId: 'sagacity' },
   },
   {
     title: 'DATA SOVEREIGN',
     description: 'Achievement locked. Reach Level 15 to initiate.',
     unlocked: false,
     icon: Database,
-    route: null,
   },
 ]
 
@@ -53,7 +48,7 @@ const LINKS = [
 
 const ProfilePage = ({ onNavigate }) => (
   <div id="profile-page" className="min-h-screen bg-[#1a1110]">
-    <AppNavBar active={null} onNavigate={onNavigate} />
+    <AppNavBar active={ROUTES.HOME} onNavigate={onNavigate} />
 
     <div className="max-w-container mx-auto px-4 md:px-8 pb-12">
       <motion.div
@@ -109,30 +104,6 @@ const ProfilePage = ({ onNavigate }) => (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {ACHIEVEMENTS.map((ach) => {
             const Icon = ach.icon
-            const content = (
-              <>
-                <Icon size={24} className="text-[#F0A844] mb-2" />
-                <h3 className="text-[#f9a875] font-bold text-sm">{ach.title}</h3>
-                <p className="text-[#F5F2F0]/60 text-[12px] mt-1 leading-snug">
-                  {ach.description}
-                </p>
-              </>
-            )
-
-            if (ach.unlocked && ach.route) {
-              return (
-                <motion.button
-                  key={ach.title}
-                  type="button"
-                  whileHover={{ scale: 1.01 }}
-                  onClick={() => onNavigate(ach.route, ach.params ?? {})}
-                  className="rounded-lg p-4 border text-left w-full bg-[#3d2b2a] border-[#E05B2D]/50 hover:bg-[#4a3532] transition-colors"
-                >
-                  {content}
-                </motion.button>
-              )
-            }
-
             return (
               <div
                 key={ach.title}
@@ -142,7 +113,11 @@ const ProfilePage = ({ onNavigate }) => (
                     : 'bg-[#3d2b2a]/40 border-transparent opacity-50'
                 }`}
               >
-                {content}
+                <Icon size={24} className="text-[#F0A844] mb-2" />
+                <h3 className="text-[#f9a875] font-bold text-sm">{ach.title}</h3>
+                <p className="text-[#F5F2F0]/60 text-[12px] mt-1 leading-snug">
+                  {ach.description}
+                </p>
               </div>
             )
           })}

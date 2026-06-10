@@ -80,7 +80,7 @@ const NotificationsPage = ({ onNavigate }) => (
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.06 }}
-              onClick={() => item.route && onNavigate(item.route)}
+              onClick={() => onNavigate(item.route)}
               className={`w-full flex gap-3 px-4 py-4 text-left hover:bg-[#1A1110]/40 transition-colors ${
                 index < NOTIFICATIONS.length - 1 ? 'border-b border-[#1A1110]/80' : ''
               }`}
