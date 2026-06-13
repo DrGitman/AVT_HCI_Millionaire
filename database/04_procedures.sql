@@ -168,12 +168,17 @@ CREATE OR REPLACE PROCEDURE sp_EndGame(
 )
 LANGUAGE plpgsql
 AS $$
+DECLARE
+  v_player_id INTEGER;
+  v_correct_count INTEGER;
+  v_game_score INTEGER;
 BEGIN
   IF p_status NOT IN ('completed', 'abandoned') THEN
     RAISE EXCEPTION 'Invalid game status %', p_status;
   END IF;
 
   IF p_status = 'completed' THEN
+    -- Determine winner (player with highest score)
     SELECT pga."PlayerId", COALESCE(SUM(pl."prizeValue"), 0)
     INTO p_winnerId, p_finalScore
     FROM "PlayerGameAnswer" pga
@@ -184,7 +189,35 @@ BEGIN
     ORDER BY SUM(pl."prizeValue") DESC, MAX(pga."answeredAt") ASC
     LIMIT 1;
 
-    SELECT "playerCode" INTO p_winnerCode FROM "Player" WHERE "PlayerId" = p_winnerId;
+    IF p_winnerId IS NOT NULL THEN
+      SELECT "playerCode" INTO p_winnerCode FROM "Player" WHERE "PlayerId" = p_winnerId;
+    END IF;
+
+    -- Update stats for all players in the game
+    FOR v_player_id IN
+      SELECT player_id FROM (
+        SELECT "player1" AS player_id FROM "Game" WHERE "GameId" = p_GameId
+        UNION SELECT "player2" FROM "Game" WHERE "GameId" = p_GameId
+        UNION SELECT "player3" FROM "Game" WHERE "GameId" = p_GameId
+        UNION SELECT "player4" FROM "Game" WHERE "GameId" = p_GameId
+      ) sub WHERE player_id IS NOT NULL
+    LOOP
+      SELECT COUNT(*), COALESCE(SUM(pl."prizeValue"), 0)
+      INTO v_correct_count, v_game_score
+      FROM "PlayerGameAnswer" pga
+      JOIN "Question" q ON q."QuestionId" = pga."QuestionId"
+      JOIN "PrizeLevel" pl ON pl."PrizeLevelId" = q."PrizeLevelId"
+      WHERE pga."GameId" = p_GameId AND pga."PlayerId" = v_player_id AND pga."isCorrect" = true;
+
+      UPDATE "Leaderboard"
+      SET "totalGames" = "totalGames" + 1,
+          "totalWins" = "totalWins" + (CASE WHEN v_player_id = p_winnerId THEN 1 ELSE 0 END),
+          "totalCorrect" = "totalCorrect" + v_correct_count,
+          "bestScore" = GREATEST("bestScore", v_game_score),
+          "updatedAt" = now()
+      WHERE "PlayerId" = v_player_id;
+    END LOOP;
+
   ELSE
     p_winnerId := NULL;
     p_winnerCode := NULL;
