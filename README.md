@@ -28,12 +28,10 @@ HCI Millionaire Project/
 |   |-- 04_procedures.sql
 |   |-- 05_seed.sql
 |   +-- README.md
-|-- AVT_HCI_Millionaire-backend/
-|   +-- AVT_HCI_Millionaire-backend/backend/
+|-- backend/
 |       |-- app/
 |       +-- .env.example
-|-- AVT_HCI_Millionaire-frontend/
-|   +-- AVT_HCI_Millionaire-frontend/
+|-- frontend/
 |       |-- src/
 |       |-- Dockerfile
 |       +-- .env.example
