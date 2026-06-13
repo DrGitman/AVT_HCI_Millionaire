@@ -1,13 +1,57 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Zap, Clock, BookOpen, Copy, Check, Play, X } from 'lucide-react'
 import { AppNavBar } from '../components/AppNavBar'
 import { ROUTES } from '../navigation/routes'
 import { getNavActive } from '../navigation/navActive'
+import { api } from '../lib/api'
 
-const HostWaitingLobbyPage = ({ onNavigate }) => {
+const HostWaitingLobbyPage = ({ onNavigate, gameId, roomCode, maxPlayers }) => {
   const [copied, setCopied] = useState(false)
-  const roomCode = 'HCI-7F3'
+  const [players, setPlayers] = useState([])
+
+  useEffect(() => {
+    // Initial fetch of game state to get players
+    if (gameId) {
+      api.getGameState(gameId).then(state => {
+        const pList = []
+        if (state.player1) pList.push({ id: state.player1, name: 'Host', role: 'HOST', avatar: 'Felix', active: true, ready: true })
+        if (state.player2) pList.push({ id: state.player2, name: 'Scholar 2', role: 'READY', avatar: 'Nandi', active: true, ready: true })
+        if (state.player3) pList.push({ id: state.player3, name: 'Scholar 3', role: 'READY', avatar: 'Amara', active: true, ready: true })
+        if (state.player4) pList.push({ id: state.player4, name: 'Scholar 4', role: 'READY', avatar: 'Kofi', active: true, ready: true })
+
+        while (pList.length < 4) {
+          pList.push({ name: 'Waiting...', role: null, avatar: null, active: false, ready: false })
+        }
+        setPlayers(pList)
+      })
+    }
+  }, [gameId])
+
+  const socketRef = useRef(null)
+
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.host
+    const wsUrl = `${protocol}//${host}/api/v1/game/ws/game/${roomCode}`
+
+    socketRef.current = new WebSocket(wsUrl)
+
+    socketRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      if (data.event === 'player_ready') {
+        setPlayers(prev => prev.map(p =>
+          p.id === data.playerId ? { ...p, ready: data.isReady, role: data.isReady ? 'READY' : 'WAITING' } : p
+        ))
+      } else if (data.event === 'player_joined') {
+        // Handle new player joining
+      }
+    }
+
+    return () => {
+      if (socketRef.current) socketRef.current.close()
+    }
+  }, [roomCode])
 
   const copyCode = () => {
     navigator.clipboard.writeText(roomCode)
@@ -15,12 +59,6 @@ const HostWaitingLobbyPage = ({ onNavigate }) => {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const players = [
-    { name: 'Host (You)', role: 'HOST', avatar: 'Felix', active: true },
-    { name: 'Nandi_D', role: 'READY', avatar: 'Nandi', active: true },
-    { name: 'Waiting...', role: null, avatar: null, active: false },
-    { name: 'Waiting...', role: null, avatar: null, active: false },
-  ]
 
   return (
     <div className="min-h-screen bg-[#0D0908] text-[#F5F2F0] font-sans overflow-hidden relative">
@@ -81,7 +119,7 @@ const HostWaitingLobbyPage = ({ onNavigate }) => {
               {player.active ? (
                 <>
                   <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-                  <div className="w-28 h-28 rounded-[32px] overflow-hidden border-4 border-[#F0A844]/20 mb-8 bg-[#0D0908] shadow-2xl group-hover:scale-110 transition-transform duration-500">
+                  <div className={`w-28 h-28 rounded-[32px] overflow-hidden border-4 mb-8 bg-[#0D0908] shadow-2xl group-hover:scale-110 transition-transform duration-500 ${player.ready ? 'border-green-500/50' : 'border-[#F0A844]/20'}`}>
                     <img
                       src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${player.avatar}`}
                       alt={player.name}

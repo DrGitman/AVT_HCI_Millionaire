@@ -1,6 +1,7 @@
 import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 import random
 from app.models.game import Game
 from app.models.player import Player
@@ -35,17 +36,18 @@ def create_game(request: GameCreateRequest, player: Player, db: Session) -> Game
     db.add(player)
 
     # Use stored procedure:
-    # CALL sp_CreateGame(p_player1, p_player2, p_player3, p_player4, p_category_ids, OUT p_GameId, OUT p_gameCode)
+    # CALL sp_CreateGame(p_player1, p_player2, p_player3, p_player4, p_category_ids, p_maxPlayers, OUT p_GameId, OUT p_gameCode)
     cat_ids = request.categoryIds if request.categoryIds else [1, 2, 3, 4, 5]
 
     result = db.execute(
-        "CALL sp_CreateGame(:p1, :p2, :p3, :p4, :cats, NULL, NULL)",
+        text("CALL sp_CreateGame(:p1, :p2, :p3, :p4, :cats, :max, NULL, NULL)"),
         {
             "p1": player.PlayerId,
             "p2": request.player2Id,
             "p3": request.player3Id,
             "p4": request.player4Id,
-            "cats": cat_ids
+            "cats": cat_ids,
+            "max": request.maxPlayers
         }
     ).fetchone()
 
@@ -58,6 +60,34 @@ def create_game(request: GameCreateRequest, player: Player, db: Session) -> Game
             detail="Failed to retrieve game after creation"
         )
 
+    return GameResponse.model_validate(game)
+
+
+def join_game(room_code: str, player: Player, db: Session) -> GameResponse:
+    game = db.query(Game).filter(Game.gameCode == room_code, Game.status == "waiting").first()
+    if not game:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Active lobby with this code not found"
+        )
+
+    if player.PlayerId in [game.player1, game.player2, game.player3, game.player4]:
+        return GameResponse.model_validate(game)
+
+    if not game.player2:
+        game.player2 = player.PlayerId
+    elif not game.player3:
+        game.player3 = player.PlayerId
+    elif not game.player4:
+        game.player4 = player.PlayerId
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Game lobby is full"
+        )
+
+    db.commit()
+    db.refresh(game)
     return GameResponse.model_validate(game)
 
 
@@ -140,7 +170,7 @@ def submit_answer(
     #   OUT p_isCorrect, OUT p_justification, OUT p_prizeValue, OUT p_isSafetyNet, OUT p_playerEliminated)
     try:
         result = db.execute(
-            "CALL sp_RecordAnswer(:gid, :pid, :qid, :aid, :seq, NULL, NULL, NULL, NULL, NULL)",
+            text("CALL sp_RecordAnswer(:gid, :pid, :qid, :aid, :seq, NULL, NULL, NULL, NULL, NULL)"),
             {
                 "gid": request.GameId,
                 "pid": player.PlayerId,
@@ -193,7 +223,7 @@ def end_game(game_id: int, player: Player, db: Session) -> GameEndResponse:
     # Use stored procedure:
     # CALL sp_EndGame(IN p_GameId, IN p_status, OUT p_winnerId, OUT p_winnerCode, OUT p_finalScore)
     result = db.execute(
-        "CALL sp_EndGame(:gid, 'completed', NULL, NULL, NULL)",
+        text("CALL sp_EndGame(:gid, 'completed', NULL, NULL, NULL)"),
         {"gid": game_id}
     ).fetchone()
 

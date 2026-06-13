@@ -9,6 +9,7 @@ class GameCreateRequest(BaseModel):
     player3Id: int | None = None
     player4Id: int | None = None
     categoryIds: list[int] = []
+    maxPlayers: int = 4
 
 class GameResponse(BaseModel):
     GameId: int
@@ -18,6 +19,7 @@ class GameResponse(BaseModel):
     player2: int | None
     player3: int | None
     player4: int | None
+    maxPlayers: int
     winner: int | None
     startTime: datetime | None
     endTime: datetime | None

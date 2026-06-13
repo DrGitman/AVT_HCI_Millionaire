@@ -33,6 +33,7 @@ CREATE OR REPLACE PROCEDURE sp_CreateGame(
   IN p_player3 INTEGER DEFAULT NULL,
   IN p_player4 INTEGER DEFAULT NULL,
   IN p_category_ids INTEGER[] DEFAULT ARRAY[1,2,3,4,5],
+  IN p_maxPlayers INTEGER DEFAULT 4,
   OUT p_GameId INTEGER,
   OUT p_gameCode VARCHAR
 )
@@ -45,8 +46,8 @@ BEGIN
   SELECT COALESCE(MAX("GameId"), 0) + 1 INTO v_sequence FROM "Game";
   p_gameCode := 'GAM' || LPAD(v_sequence::TEXT, 6, '0');
 
-  INSERT INTO "Game" ("gameCode", "player1", "player2", "player3", "player4", "status", "startTime")
-  VALUES (p_gameCode, p_player1, p_player2, p_player3, p_player4, 'active', now())
+  INSERT INTO "Game" ("gameCode", "player1", "player2", "player3", "player4", "maxPlayers", "status", "startTime")
+  VALUES (p_gameCode, p_player1, p_player2, p_player3, p_player4, p_maxPlayers, 'waiting', now())
   RETURNING "GameId" INTO p_GameId;
 
   FOREACH v_category IN ARRAY p_category_ids LOOP

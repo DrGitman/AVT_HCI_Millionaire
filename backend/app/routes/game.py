@@ -4,10 +4,19 @@ from app.database import get_db
 from app.models.player import Player
 from app.schemas.game import GameCreateRequest, GameResponse, GameStateResponse, GameEndResponse
 from app.schemas.question import AnswerSubmitRequest, AnswerSubmitResponse
-from app.services.game_service import create_game, get_game_state, submit_answer, end_game
+from app.services.game_service import create_game, join_game, get_game_state, submit_answer, end_game
 from app.security.dependencies import get_current_player
 
 router = APIRouter()
+
+
+@router.post("/join/{room_code}", response_model=GameResponse)
+def join_lobby(
+    room_code: str,
+    current_player: Player = Depends(get_current_player),
+    db: Session = Depends(get_db),
+):
+    return join_game(room_code, current_player, db)
 
 
 @router.post("/start", response_model=GameResponse, status_code=201)

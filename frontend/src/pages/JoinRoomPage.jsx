@@ -1,12 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../navigation/routes'
 import { AppNavBar } from '../components/AppNavBar'
 import { getNavActive } from '../navigation/navActive'
+import { api } from '../lib/api'
 
 const JoinRoomPage = ({ onNavigate }) => {
-  const [roomCode, setRoomCode] = useState(['H', 'C', 'I', '2', '0', '2'])
-  const [playerName] = useState('Sammy')
+  const [roomCode, setRoomCode] = useState(['', '', '', '', '', ''])
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    api.me().then(setUser).catch(console.error)
+  }, [])
 
   const handleCodeChange = (index, value) => {
     if (value.length <= 1 && /^[A-Z0-9]*$/.test(value.toUpperCase())) {
@@ -29,6 +34,19 @@ const JoinRoomPage = ({ onNavigate }) => {
 
   const completeCode = roomCode.join('')
   const isCodeComplete = completeCode.length === 6
+
+  const handleJoinRoom = () => {
+    if (!isCodeComplete) return
+    api.joinGame(completeCode).then(res => {
+      onNavigate(ROUTES.GUEST_LOBBY, {
+        gameId: res.GameId,
+        roomCode: res.gameCode,
+        maxPlayers: res.maxPlayers
+      })
+    }).catch(err => {
+      alert(err.message)
+    })
+  }
 
   return (
     <div className="min-h-screen bg-[#0D0908] font-sans text-[#F5F2F0] overflow-hidden relative">
@@ -115,19 +133,19 @@ const JoinRoomPage = ({ onNavigate }) => {
           <div className="flex items-center gap-6 bg-[#1A1312] px-10 py-5 rounded-[24px] border border-white/5 shadow-2xl scale-110">
             <div className="w-14 h-14 rounded-2xl overflow-hidden bg-[#4A2B28] border-2 border-[#F0A844]/20 shadow-inner">
               <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sammy"
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'Guest'}`}
                 alt="Avatar"
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="text-white font-black text-[24px] font-serif italic tracking-tight">{playerName}</span>
+            <span className="text-white font-black text-[24px] font-serif italic tracking-tight">{user?.name || 'Researcher'}</span>
           </div>
         </motion.div>
 
         {/* Join Button */}
         <div className="mt-24 w-full flex flex-col items-center">
           <button
-            onClick={() => isCodeComplete && onNavigate(ROUTES.GUEST_LOBBY)}
+            onClick={handleJoinRoom}
             disabled={!isCodeComplete}
             className={`w-full max-w-xl h-24 rounded-[32px] font-black text-[28px] transition-all duration-500 font-serif italic tracking-tight shadow-2xl ${
               isCodeComplete

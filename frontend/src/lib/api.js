@@ -27,9 +27,13 @@ export const api = {
   me: () => request('/users/me', { token: localStorage.getItem('hci_token') }),
 
   // Game Actions
-  startGame: (categoryIds) => request('/game/start', {
+  startGame: (categoryIds, maxPlayers = 1) => request('/game/start', {
     method: 'POST',
-    body: { categoryIds },
+    body: { categoryIds, maxPlayers },
+    token: localStorage.getItem('hci_token')
+  }),
+  joinGame: (roomCode) => request(`/game/join/${roomCode}`, {
+    method: 'POST',
     token: localStorage.getItem('hci_token')
   }),
   getGameState: (gameId) => request(`/game/${gameId}/state`, {
@@ -46,13 +50,13 @@ export const api = {
   }),
 
   // Lifelines
-  use5050: (questionId) => request(`/lifelines/fifty-fifty/${questionId}`, {
+  use5050: (gameId, questionId) => request(`/lifelines/fifty-fifty/${gameId}/${questionId}`, {
     token: localStorage.getItem('hci_token')
   }),
-  useSage: (questionId) => request(`/lifelines/sage/${questionId}`, {
+  useSage: (gameId, questionId) => request(`/lifelines/sage/${gameId}/${questionId}`, {
     token: localStorage.getItem('hci_token')
   }),
-  usePhone: (questionId) => request(`/lifelines/phone-a-peer/${questionId}`, {
+  usePhone: (gameId, questionId) => request(`/lifelines/phone-a-peer/${gameId}/${questionId}`, {
     token: localStorage.getItem('hci_token')
   }),
   voteClass: (gameId, questionId, answerId) => request('/lifelines/ask-the-class', {

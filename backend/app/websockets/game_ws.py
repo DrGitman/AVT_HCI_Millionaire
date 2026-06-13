@@ -30,11 +30,43 @@ async def game_websocket(websocket: WebSocket, room_code: str):
                     "totalVotes": message.get("totalVotes"),
                 })
 
+            elif event == "chat_message":
+                await manager.broadcast(room_code, {
+                    "event": "chat_message",
+                    "playerId": message.get("playerId"),
+                    "playerName": message.get("playerName"),
+                    "text": message.get("text"),
+                    "timestamp": message.get("timestamp"),
+                })
+
+            elif event == "emoji_reaction":
+                await manager.broadcast(room_code, {
+                    "event": "emoji_reaction",
+                    "playerId": message.get("playerId"),
+                    "emoji": message.get("emoji"),
+                })
+
+            elif event == "webrtc_signal":
+                # WebRTC signaling for voice chat
+                await manager.broadcast(room_code, {
+                    "event": "webrtc_signal",
+                    "senderId": message.get("senderId"),
+                    "signal": message.get("signal"),
+                    "targetId": message.get("targetId"),
+                })
+
             elif event == "game_over":
                 await manager.broadcast(room_code, {
                     "event": "game_over",
                     "winnerId": message.get("winnerId"),
                     "finalScores": message.get("finalScores"),
+                })
+
+            elif event == "player_ready":
+                await manager.broadcast(room_code, {
+                    "event": "player_ready",
+                    "playerId": message.get("playerId"),
+                    "isReady": message.get("isReady"),
                 })
 
             else:
