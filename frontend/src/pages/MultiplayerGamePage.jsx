@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users,
@@ -14,11 +14,13 @@ import {
   Volume2,
   VolumeX,
   Smartphone,
-  BookOpen
+  BookOpen,
+  X
 } from 'lucide-react'
 import { AppNavBar } from '../components/AppNavBar'
 import { ROUTES } from '../navigation/routes'
 import { getNavActive } from '../navigation/navActive'
+import { api } from '../lib/api'
 
 const LADDER = [
   { level: 15, prize: '$1,000,000', milestone: 'trophy' },
@@ -52,10 +54,71 @@ const PLAYERS = [
   { id: 4, name: 'Kofi', prize: '$8,000', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kofi', talking: false, ready: false, muted: true },
 ]
 
-const MultiplayerGamePage = ({ onNavigate }) => {
+const MultiplayerGamePage = ({ onNavigate, roomCode = 'HCI-7F3' }) => {
+  const [user, setUser] = useState(null)
+  const [players, setPlayers] = useState(PLAYERS)
   const [selected, setSelected] = useState('B')
   const [timeLeft, setTimeLeft] = useState(9)
   const [activeLifeline, setActiveLifeline] = useState(null)
+
+  // Real-time states
+  const [messages, setMessages] = useState([])
+  const [chatOpen, setChatOpen] = useState(false)
+  const [inputText, setInputText] = useState('')
+  const [reactions, setReactions] = useState([])
+  const [isMuted, setIsMuted] = useState(false)
+
+  const socketRef = useRef(null)
+  const scrollRef = useRef(null)
+  const localStream = useRef(null)
+  const peerConnections = useRef({})
+
+  useEffect(() => {
+    api.me().then(setUser).catch(console.error)
+  }, [])
+
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = window.location.host
+    const wsUrl = `${protocol}//${host}/api/v1/game/ws/game/${roomCode}`
+
+    socketRef.current = new WebSocket(wsUrl)
+
+    socketRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+
+      if (data.event === 'chat_message') {
+        setMessages(prev => [...prev, data])
+      } else if (data.event === 'emoji_reaction') {
+        const id = Date.now()
+        setReactions(prev => [...prev, { id, emoji: data.emoji, playerId: data.playerId }])
+        setTimeout(() => {
+          setReactions(prev => prev.filter(r => r.id !== id))
+        }, 3000)
+      } else if (data.event === 'webrtc_signal') {
+        if (user && (data.targetId === user.PlayerId || data.targetId === 'all')) {
+          handleWebRTCSignal(data)
+        }
+      } else if (data.event === 'player_joined') {
+        setPlayers(prev => {
+          if (prev.find(p => p.id === data.player.PlayerId)) return prev
+          return [...prev, { ...data.player, id: data.player.PlayerId, active: false, ready: true }]
+        })
+      } else if (data.event === 'player_disconnected') {
+        setPlayers(prev => prev.filter(p => p.id !== data.playerId))
+      }
+    }
+
+    return () => {
+      if (socketRef.current) socketRef.current.close()
+    }
+  }, [roomCode])
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages])
 
   useEffect(() => {
     if (timeLeft <= 0) return
@@ -65,6 +128,120 @@ const MultiplayerGamePage = ({ onNavigate }) => {
 
   const handleSelectAnswer = (id) => {
     setSelected(id)
+    if (socketRef.current?.readyState === WebSocket.OPEN && user) {
+      socketRef.current.send(JSON.stringify({
+        event: 'player_answered',
+        playerId: user.PlayerId,
+        answerId: id
+      }))
+    }
+  }
+
+  const handleWebRTCSignal = async (data) => {
+    const { senderId, signal } = data
+
+    if (signal.type === 'offer') {
+      const pc = createPeerConnection(senderId)
+      await pc.setRemoteDescription(new RTCSessionDescription(signal))
+      const answer = await pc.createAnswer()
+      await pc.setLocalDescription(answer)
+      sendSignal(senderId, answer)
+    } else if (signal.type === 'answer') {
+      const pc = peerConnections.current[senderId]
+      if (pc) await pc.setRemoteDescription(new RTCSessionDescription(signal))
+    } else if (signal.type === 'ice-candidate') {
+      const pc = peerConnections.current[senderId]
+      if (pc) await pc.addIceCandidate(new RTCIceCandidate(signal.candidate))
+    }
+  }
+
+  const createPeerConnection = (targetId) => {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    })
+
+    if (localStream.current) {
+      localStream.current.getTracks().forEach(track => pc.addTrack(track, localStream.current))
+    }
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        sendSignal(targetId, { type: 'ice-candidate', candidate: event.candidate })
+      }
+    }
+
+    pc.ontrack = (event) => {
+      const remoteAudio = new Audio()
+      remoteAudio.srcObject = event.streams[0]
+      remoteAudio.play()
+    }
+
+    peerConnections.current[targetId] = pc
+    return pc
+  }
+
+  const sendSignal = (targetId, signal) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN && user) {
+      socketRef.current.send(JSON.stringify({
+        event: 'webrtc_signal',
+        senderId: user.PlayerId,
+        targetId,
+        signal
+      }))
+    }
+  }
+
+  const toggleMic = async () => {
+    const nextMuted = !isMuted
+    setIsMuted(nextMuted)
+
+    if (!nextMuted && !localStream.current) {
+      try {
+        localStream.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+        Object.values(peerConnections.current).forEach(pc => {
+          localStream.current.getTracks().forEach(track => pc.addTrack(track, localStream.current))
+        })
+      } catch (err) {
+        console.error("Error accessing microphone:", err)
+      }
+    } else if (localStream.current) {
+      localStream.current.getAudioTracks().forEach(track => (track.enabled = !nextMuted))
+    }
+
+    if (socketRef.current?.readyState === WebSocket.OPEN && user) {
+      socketRef.current.send(JSON.stringify({
+        event: 'webrtc_signal',
+        senderId: user.PlayerId,
+        targetId: 'all',
+        signal: { type: 'mic_status', muted: nextMuted }
+      }))
+    }
+  }
+
+  const sendMessage = (e) => {
+    e.preventDefault()
+    if (!inputText.trim() || !user) return
+
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({
+        event: 'chat_message',
+        playerId: user.PlayerId,
+        playerName: user.name,
+        text: inputText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }))
+      setInputText('')
+    }
+  }
+
+  const sendEmoji = (emoji) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN && user) {
+      socketRef.current.send(JSON.stringify({
+        event: 'emoji_reaction',
+        playerId: user.PlayerId,
+        emoji: emoji
+      }))
+    }
   }
 
   return (
@@ -84,14 +261,39 @@ const MultiplayerGamePage = ({ onNavigate }) => {
           />
           <div className="w-[2px] h-10 bg-white/10" />
           <div className="flex items-center gap-4">
-            <button className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#1A1312] text-[#F0A844] hover:bg-[#EF6637] hover:text-white transition-all border border-[#F0A844]/20 shadow-xl group">
+            <button
+              onClick={() => setChatOpen(!chatOpen)}
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border shadow-xl group ${
+                chatOpen ? 'bg-[#EF6637] text-white border-[#F0A844]/40' : 'bg-[#1A1312] text-[#F0A844] hover:bg-[#EF6637] hover:text-white border-[#F0A844]/20'
+              }`}
+            >
               <MessageSquare size={24} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
             </button>
-            <button className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#1A1312] text-[#F0A844] hover:bg-[#EF6637] hover:text-white transition-all border border-[#F0A844]/20 shadow-xl group">
-              <Smile size={24} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
-            </button>
-            <button className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#1A1312] text-[#F0A844] hover:bg-[#EF6637] hover:text-white transition-all border border-[#F0A844]/20 shadow-xl group">
-              <Mic size={24} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
+
+            <div className="relative group">
+              <button className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#1A1312] text-[#F0A844] hover:bg-[#EF6637] hover:text-white transition-all border border-[#F0A844]/20 shadow-xl">
+                <Smile size={24} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 flex gap-2 p-3 bg-[#1A1312] border border-white/10 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                {['👍', '🔥', '💡', '🤔', '🤣'].map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => sendEmoji(emoji)}
+                    className="text-2xl hover:scale-125 transition-transform"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={toggleMic}
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all border shadow-xl group ${
+                !isMuted ? 'bg-[#1A1312] text-[#F0A844] hover:bg-[#EF6637] hover:text-white border-[#F0A844]/20' : 'bg-red-500/20 text-red-500 border-red-500/40'
+              }`}
+            >
+              {isMuted ? <VolumeX size={24} strokeWidth={2.5} /> : <Mic size={24} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />}
             </button>
           </div>
         </div>
@@ -111,6 +313,71 @@ const MultiplayerGamePage = ({ onNavigate }) => {
       </header>
 
       <div className="flex-1 flex overflow-hidden relative z-10">
+        {/* Floating Emoji Reactions */}
+        <AnimatePresence>
+          {reactions.map(r => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0, y: 100, x: Math.random() * 200 - 100 }}
+              animate={{ opacity: 1, y: -500 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 3, ease: "easeOut" }}
+              className="absolute bottom-20 left-1/2 pointer-events-none text-6xl z-50"
+            >
+              {r.emoji}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {/* Chat Sidebar Overlay */}
+        <AnimatePresence>
+          {chatOpen && (
+            <motion.aside
+              initial={{ x: 400 }}
+              animate={{ x: 0 }}
+              exit={{ x: 400 }}
+              className="absolute right-0 top-0 bottom-0 w-[400px] bg-[#1A1312] border-l border-white/10 z-40 flex flex-col shadow-[-20px_0_40px_rgba(0,0,0,0.5)]"
+            >
+              <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                <h3 className="font-serif italic font-black text-[#F0A844] text-xl tracking-tight">Scholarly Chat</h3>
+                <button onClick={() => setChatOpen(false)} className="text-white/40 hover:text-white transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex flex-col ${user && msg.playerId === user.PlayerId ? 'items-end' : 'items-start'}`}>
+                    <div className="flex items-center gap-2 mb-1 px-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#F0A844]">{msg.playerName}</span>
+                      <span className="text-[10px] text-white/20">{msg.timestamp}</span>
+                    </div>
+                    <div className={`max-w-[85%] p-4 rounded-2xl font-serif italic text-sm ${
+                      user && msg.playerId === user.PlayerId ? 'bg-[#EF6637] text-white rounded-tr-none' : 'bg-[#4A2B28]/40 text-[#F5F2F0] border border-white/5 rounded-tl-none'
+                    }`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <form onSubmit={sendMessage} className="p-6 bg-[#0D0908]/50 border-t border-white/5">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder="Type your deliberation..."
+                    className="w-full bg-[#1A1312] border border-white/10 rounded-xl py-4 pl-6 pr-14 text-white text-sm focus:outline-none focus:border-[#EF6637] transition-colors"
+                  />
+                  <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#EF6637]">
+                    <Zap size={20} fill="currentColor" />
+                  </button>
+                </div>
+              </form>
+            </motion.aside>
+          )}
+        </AnimatePresence>
         {/* Lifelines Sidebar */}
         <aside className="w-[360px] bg-[#1A1312]/80 backdrop-blur-md border-r border-white/5 p-14 flex flex-col gap-10">
           <div className="flex items-center gap-4 mb-2">
@@ -152,7 +419,7 @@ const MultiplayerGamePage = ({ onNavigate }) => {
         <main className="flex-1 p-16 overflow-y-auto custom-scrollbar flex flex-col items-center relative">
           {/* Players Strip */}
           <div className="w-full max-w-[1200px] grid grid-cols-4 gap-8 mb-20">
-            {PLAYERS.map((player) => (
+            {players.map((player) => (
               <motion.div
                 key={player.id}
                 initial={{ opacity: 0, y: -20 }}

@@ -4,6 +4,7 @@ import { ROUTES } from '../navigation/routes'
 import { AppNavBar } from '../components/AppNavBar'
 import { getNavActive } from '../navigation/navActive'
 import { ArrowRight, Minus, Plus } from 'lucide-react'
+import { api } from '../lib/api'
 
 const CreateRoomPage = ({ onNavigate }) => {
   const [maxPlayers, setMaxPlayers] = useState(4)
@@ -32,14 +33,16 @@ const CreateRoomPage = ({ onNavigate }) => {
   ]
 
   const handleCreateRoom = () => {
-    onNavigate(ROUTES.HOST_LOBBY, {
-      roomConfig: {
-        maxPlayers,
-        competitiveMode,
-        theme: selectedTheme,
-        timePerQuestion,
-      },
-    })
+    const stored = localStorage.getItem('hci_selected_categories')
+    const categoryIds = stored ? JSON.parse(stored) : [1, 2, 3, 4, 5]
+
+    api.startGame(categoryIds, maxPlayers).then(res => {
+      onNavigate(ROUTES.HOST_LOBBY, {
+        gameId: res.GameId,
+        roomCode: res.gameCode,
+        maxPlayers: res.maxPlayers
+      })
+    }).catch(console.error)
   }
 
   return (

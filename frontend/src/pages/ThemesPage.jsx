@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ROUTES } from '../navigation/routes'
 import { AppNavBar } from '../components/AppNavBar'
 import { getNavActive } from '../navigation/navActive'
+import { api } from '../lib/api'
 import {
   BookOpen,
   Scale,
@@ -57,7 +58,17 @@ const ThemeRow = ({ theme, isSelected, onToggle }) => {
 }
 
 const ThemesPage = ({ onNavigate }) => {
-  const [selectedThemes, setSelectedThemes] = useState(new Set(['case-studies']))
+  const [categories, setCategories] = useState([])
+  const [selectedThemes, setSelectedThemes] = useState(new Set())
+
+  useEffect(() => {
+    api.getCategories().then(cats => {
+      setCategories(cats)
+      // Map existing THEMES to dynamic CategoryIds
+      const defaultTheme = cats.find(c => c.name.toLowerCase().includes('case studies'))
+      if (defaultTheme) setSelectedThemes(new Set([defaultTheme.CategoryId]))
+    }).catch(console.error)
+  }, [])
 
   const toggleTheme = (themeId) => {
     const next = new Set(selectedThemes)
@@ -101,36 +112,21 @@ const ThemesPage = ({ onNavigate }) => {
 
         <div className="w-full max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mb-8">
-            {THEMES.slice(0, 4).map((theme, i) => (
+            {categories.map((cat, i) => (
               <motion.div
-                key={theme.id}
+                key={cat.CategoryId}
                 initial={{ opacity: 0, x: i % 2 === 0 ? -30 : 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 + i * 0.1 }}
               >
                 <ThemeRow
-                  theme={theme}
-                  isSelected={selectedThemes.has(theme.id)}
-                  onToggle={() => toggleTheme(theme.id)}
+                  theme={{ label: cat.name, icon: THEMES[i % THEMES.length].icon }}
+                  isSelected={selectedThemes.has(cat.CategoryId)}
+                  onToggle={() => toggleTheme(cat.CategoryId)}
                 />
               </motion.div>
             ))}
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="flex justify-center mt-8"
-          >
-            <div className="w-full md:w-[65%]">
-              <ThemeRow
-                theme={THEMES[4]}
-                isSelected={selectedThemes.has('african-values')}
-                onToggle={() => toggleTheme('african-values')}
-              />
-            </div>
-          </motion.div>
         </div>
       </div>
 
@@ -157,7 +153,12 @@ const ThemesPage = ({ onNavigate }) => {
 
         <button
           type="button"
-          onClick={() => selectedThemes.size > 0 && onNavigate(ROUTES.HOME)}
+          onClick={() => {
+            if (selectedThemes.size > 0) {
+              localStorage.setItem('hci_selected_categories', JSON.stringify([...selectedThemes]))
+              onNavigate(ROUTES.HOME)
+            }
+          }}
           disabled={selectedThemes.size === 0}
           className={`px-20 py-8 rounded-[24px] font-black text-[22px] transition-all font-serif italic tracking-tight shadow-2xl ${
             selectedThemes.size > 0

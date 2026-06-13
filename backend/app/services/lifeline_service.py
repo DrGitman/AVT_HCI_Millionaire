@@ -2,6 +2,7 @@ import uuid
 import random
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.models.player import Player
 from app.models.question import Question
 from app.models.answer import Answer
@@ -17,7 +18,7 @@ from app.schemas.lifeline import (
 import json
 
 def use_fifty_fifty(
-    question_id: int, player: Player, db: Session
+    game_id: int, question_id: int, player: Player, db: Session
 ) -> FiftyFiftyResponse:
     if not player.lifeLine5050:
         raise HTTPException(
@@ -33,8 +34,8 @@ def use_fifty_fifty(
     # Looking at sp_UseLifeline, it doesn't actually USE p_GameId for 5050, Phone or Notes.
 
     result = db.execute(
-        "CALL sp_UseLifeline(0, :pid, :qid, '5050', NULL)",
-        {"pid": player.PlayerId, "qid": question_id}
+        text("CALL sp_UseLifeline(:gid, :pid, :qid, '5050', NULL)"),
+        {"gid": game_id, "pid": player.PlayerId, "qid": question_id}
     ).fetchone()
 
     p_result = json.loads(result[0])
@@ -66,7 +67,7 @@ def use_fifty_fifty(
 
 
 def use_sage_hint(
-    question_id: int, player: Player, db: Session
+    game_id: int, question_id: int, player: Player, db: Session
 ) -> SageHintResponse:
     if not player.lifeLineNotes:
         raise HTTPException(
@@ -77,8 +78,8 @@ def use_sage_hint(
     question = _get_question_or_404(question_id, db)
 
     result = db.execute(
-        "CALL sp_UseLifeline(0, :pid, :qid, 'Notes', NULL)",
-        {"pid": player.PlayerId, "qid": question_id}
+        text("CALL sp_UseLifeline(:gid, :pid, :qid, 'Notes', NULL)"),
+        {"gid": game_id, "pid": player.PlayerId, "qid": question_id}
     ).fetchone()
 
     p_result = json.loads(result[0])
@@ -92,7 +93,7 @@ def use_sage_hint(
 
 
 def use_phone_a_peer(
-    question_id: int, player: Player, db: Session
+    game_id: int, question_id: int, player: Player, db: Session
 ) -> PhoneAPeerResponse:
     if not player.lifeLinePhone:
         raise HTTPException(
@@ -103,8 +104,8 @@ def use_phone_a_peer(
     _get_question_or_404(question_id, db)
 
     result = db.execute(
-        "CALL sp_UseLifeline(0, :pid, :qid, 'Phone', NULL)",
-        {"pid": player.PlayerId, "qid": question_id}
+        text("CALL sp_UseLifeline(:gid, :pid, :qid, 'Phone', NULL)"),
+        {"gid": game_id, "pid": player.PlayerId, "qid": question_id}
     ).fetchone()
 
     p_result = json.loads(result[0])

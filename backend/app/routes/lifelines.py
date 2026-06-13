@@ -15,31 +15,34 @@ from app.security.dependencies import get_current_player
 router = APIRouter()
 
 
-@router.get("/fifty-fifty/{question_id}", response_model=FiftyFiftyResponse)
+@router.get("/fifty-fifty/{game_id}/{question_id}", response_model=FiftyFiftyResponse)
 def fifty_fifty(
+    game_id: int,
     question_id: int,
     current_player: Player = Depends(get_current_player),
     db: Session = Depends(get_db),
 ):
-    return use_fifty_fifty(question_id, current_player, db)
+    return use_fifty_fifty(game_id, question_id, current_player, db)
 
 
-@router.get("/sage/{question_id}", response_model=SageHintResponse)
+@router.get("/sage/{game_id}/{question_id}", response_model=SageHintResponse)
 def sage_hint(
+    game_id: int,
     question_id: int,
     current_player: Player = Depends(get_current_player),
     db: Session = Depends(get_db),
 ):
-    return use_sage_hint(question_id, current_player, db)
+    return use_sage_hint(game_id, question_id, current_player, db)
 
 
-@router.get("/phone-a-peer/{question_id}", response_model=PhoneAPeerResponse)
+@router.get("/phone-a-peer/{game_id}/{question_id}", response_model=PhoneAPeerResponse)
 def phone_a_peer(
+    game_id: int,
     question_id: int,
     current_player: Player = Depends(get_current_player),
     db: Session = Depends(get_db),
 ):
-    return use_phone_a_peer(question_id, current_player, db)
+    return use_phone_a_peer(game_id, question_id, current_player, db)
 
 
 @router.post("/ask-the-class", response_model=AskTheClassResultResponse)

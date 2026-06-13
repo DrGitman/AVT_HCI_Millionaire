@@ -58,7 +58,10 @@ const GamePage = ({ onNavigate }) => {
   const [removedAnswers, setRemovedAnswers] = useState([])
 
   useEffect(() => {
-    api.startGame([1, 2, 3, 4, 5])
+    const stored = localStorage.getItem('hci_selected_categories')
+    const categoryIds = stored ? JSON.parse(stored) : [1, 2, 3, 4, 5]
+
+    api.startGame(categoryIds)
       .then(res => {
         api.getGameState(res.GameId).then(setGame)
       })
@@ -106,20 +109,20 @@ const GamePage = ({ onNavigate }) => {
     const qid = game.currentQuestion.QuestionId
 
     if (type === 'fiftyFifty') {
-      api.use5050(qid).then(res => {
+      api.use5050(game.GameId, qid).then(res => {
         const allIds = game.currentQuestion.answers.map(a => a.AnswerId)
         const toRemove = allIds.filter(id => !res.remainingAnswers.includes(id))
         setRemovedAnswers(toRemove)
         setGame(prev => ({ ...prev, lifelinesAvailable: { ...prev.lifelinesAvailable, fiftyFifty: false } }))
       })
     } else if (type === 'phoneAPeer') {
-      api.usePhone(qid).then(res => {
+      api.usePhone(game.GameId, qid).then(res => {
         setLifelineData(res)
         setActiveLifeline('phone')
         setGame(prev => ({ ...prev, lifelinesAvailable: { ...prev.lifelinesAvailable, phoneAPeer: false } }))
       })
     } else if (type === 'courseNotes') {
-      api.useSage(qid).then(res => {
+      api.useSage(game.GameId, qid).then(res => {
         setLifelineData(res)
         setActiveLifeline('sage')
         setGame(prev => ({ ...prev, lifelinesAvailable: { ...prev.lifelinesAvailable, courseNotes: false } }))

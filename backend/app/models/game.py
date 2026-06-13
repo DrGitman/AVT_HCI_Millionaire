@@ -38,6 +38,7 @@ class Game(Base):
 
     # status: 'waiting' | 'active' | 'completed' | 'abandoned'
     status: Mapped[str] = mapped_column(String, default="waiting", nullable=False)
+    maxPlayers: Mapped[int] = mapped_column(Integer, default=4, nullable=False)
     startTime: Mapped[DateTime | None] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=True
     )
