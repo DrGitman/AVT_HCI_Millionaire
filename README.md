@@ -37,11 +37,6 @@ HCI Millionaire Project/
 |       +-- .env.example
 ```
 
-## Local Stack
-* PostgreSQL: `hci_millionaire`
-* DB user: `hci_user`
-* DB password: `hci_pass`
-* pgAdmin: `admin@hci.local` / `pgadmin123`
 
 ## Run
 * Start everything with `docker compose up --build`
