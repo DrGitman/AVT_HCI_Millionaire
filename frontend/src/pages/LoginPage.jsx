@@ -135,10 +135,10 @@ const LoginPage = ({ onNavigate }) => {
                 if (errors.password) setErrors({ ...errors, password: '' })
               }}
               error={errors.password}
-              inputClassName="w-full h-[64px] pl-14 pr-16 bg-[#4A2B28] border border-white/5 rounded-xl text-[18px] text-[#F5F2F0] placeholder:text-[#F5F2F0]/20 transition-all duration-300 focus:outline-none focus:border-[#EF6637] focus:ring-1 focus:ring-[#EF6637]/40"
+              inputClassName="w-full h-[64px] pl-14 pr-24 bg-[#4A2B28] border border-white/5 rounded-xl text-[18px] text-[#F5F2F0] placeholder:text-[#F5F2F0]/20 transition-all duration-300 focus:outline-none focus:border-[#EF6637] focus:ring-1 focus:ring-[#EF6637]/40"
               iconClassName="absolute left-4 top-1/2 -translate-y-1/2 text-[#F5F2F0]/40 pointer-events-none"
               iconSize={20}
-              showTextClassName="text-[#EF6637] font-bold text-[13px] tracking-wider"
+              showTextClassName="text-[#F0A844] font-black text-[13px] tracking-[0.1em] hover:text-[#EF6637]"
             />
           </motion.div>
 

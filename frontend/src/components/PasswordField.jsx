@@ -12,7 +12,8 @@ export const PasswordField = ({
   placeholder = '••••••••',
   inputClassName = "w-full h-[44px] pl-10 pr-14 bg-[#613736] border border-transparent rounded-lg text-[15px] text-[#F5F2F0] placeholder:text-[#F5F2F0]/40 transition-all duration-300 focus:outline-none focus:border-[#E05B2D] focus:ring-1 focus:ring-[#E05B2D]/40",
   iconClassName = "absolute left-3.5 top-1/2 -translate-y-1/2 text-[#F5F2F0]/50 pointer-events-none",
-  iconSize = 16
+  iconSize = 16,
+  showTextClassName = ""
 }) => {
   const [showPassword, setShowPassword] = useState(false)
 
@@ -37,9 +38,13 @@ export const PasswordField = ({
           type="button"
           aria-label={showPassword ? 'Hide password' : 'Show password'}
           onClick={() => setShowPassword((prev) => !prev)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-[#F5F2F0]/40 hover:text-[#EF6637] transition-colors transition-all duration-300"
+          className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors transition-all duration-300 ${showTextClassName || 'text-[#F5F2F0]/40 hover:text-[#EF6637]'}`}
         >
-          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          {showTextClassName ? (
+            <span className="uppercase">{showPassword ? 'Hide' : 'Show'}</span>
+          ) : (
+            showPassword ? <EyeOff size={20} /> : <Eye size={20} />
+          )}
         </button>
       </div>
       {error && (
