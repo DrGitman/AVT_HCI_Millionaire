@@ -113,6 +113,7 @@ const GamePage = ({ onNavigate }) => {
         const allIds = game.currentQuestion.answers.map(a => a.AnswerId)
         const toRemove = allIds.filter(id => !res.remainingAnswers.includes(id))
         setRemovedAnswers(toRemove)
+        setActiveLifeline('fiftyFifty')
         setGame(prev => ({ ...prev, lifelinesAvailable: { ...prev.lifelinesAvailable, fiftyFifty: false } }))
       })
     } else if (type === 'phoneAPeer') {
@@ -385,56 +386,113 @@ const GamePage = ({ onNavigate }) => {
                 <X size={32} strokeWidth={3} />
               </button>
 
+              {activeLifeline === 'fiftyFifty' && (
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-4 mb-10">
+                    <div className="w-10 h-[2px] bg-[#EF6637]" />
+                    <span className="text-[#EF6637] text-[16px] font-black tracking-[0.4em] uppercase font-sans italic">
+                      LIFELINE: 50:50
+                    </span>
+                  </div>
+                  <h3 className="text-[#F0A844] font-serif font-black text-4xl italic mb-6">Two Answers Eliminated</h3>
+                  <p className="text-white/60 text-xl font-serif italic mb-12">“The balance has been restored — Ma'at in action.”</p>
+                  <div className="space-y-4 mb-12">
+                    {q.answers.map((ans, idx) => (
+                      <div key={ans.AnswerId} className="flex items-center justify-between bg-[#0D0908]/50 p-6 rounded-2xl border border-white/5">
+                        <span className="text-white font-black font-serif italic">{String.fromCharCode(65+idx)}. {ans.answer}</span>
+                        {removedAnswers.includes(ans.AnswerId) ? (
+                          <span className="text-red-500 font-black text-[12px] tracking-widest uppercase bg-red-500/10 px-4 py-1 rounded-lg border border-red-500/20">ELIMINATED</span>
+                        ) : (
+                          <span className="text-green-500 font-black text-[12px] tracking-widest uppercase bg-green-500/10 px-4 py-1 rounded-lg border border-green-500/20">STILL IN PLAY</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setActiveLifeline(null)} className="w-full h-20 bg-[#EF6637] text-white font-black text-xl rounded-2xl shadow-2xl uppercase tracking-widest font-serif italic">Return Now</button>
+                </div>
+              )}
+
               {activeLifeline === 'phone' && lifelineData && (
                 <div className="text-center">
-                  <div className="w-32 h-32 rounded-full border-4 border-[#EF6637] p-1 mx-auto mb-10 shadow-2xl">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${lifelineData.avatarName}`} className="w-full h-full rounded-full bg-[#4A2B28]" />
+                  <div className="flex items-center justify-center gap-4 mb-10">
+                    <div className="w-10 h-[2px] bg-[#EF6637]" />
+                    <span className="text-[#EF6637] text-[16px] font-black tracking-[0.4em] uppercase font-sans italic">
+                      PHONE A PEER: ACTIVE
+                    </span>
                   </div>
-                  <h3 className="text-[#F0A844] font-serif font-black text-3xl italic mb-6">Call with {lifelineData.avatarName}</h3>
-                  <p className="text-white text-2xl font-serif italic leading-relaxed mb-12">&ldquo;{lifelineData.hintText}&rdquo;</p>
+                  <div className="w-32 h-32 rounded-full border-4 border-[#EF6637] p-1 mx-auto mb-6 shadow-2xl relative">
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${lifelineData.avatarName}`} className="w-full h-full rounded-full bg-[#4A2B28]" />
+                    <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 rounded-full border-4 border-[#1A1312] animate-pulse" />
+                  </div>
+                  <p className="text-[#F0A844] font-black text-[14px] tracking-widest uppercase mb-10">{lifelineData.avatarName} — Fellow Learner <span className="text-green-500 ml-2">• SPEAKING...</span></p>
+                  <div className="bg-[#4A2B28] p-12 rounded-[32px] mb-12 border border-[#F0A844]/20 shadow-inner">
+                    <p className="text-white text-[28px] font-serif italic leading-relaxed">&ldquo;{lifelineData.hintText}&rdquo;</p>
+                  </div>
+                  <div className="flex gap-6">
+                    <button onClick={() => setActiveLifeline(null)} className="flex-1 h-20 bg-[#EF6637] text-white font-black text-xl rounded-2xl shadow-2xl uppercase tracking-widest font-serif italic">Thanks — I've Got This</button>
+                    <button onClick={() => setActiveLifeline(null)} className="flex-1 h-20 border-4 border-white/10 text-white/40 font-black text-xl rounded-2xl hover:bg-white/5 uppercase tracking-widest font-serif italic">End Call Early</button>
+                  </div>
                 </div>
               )}
 
               {activeLifeline === 'sage' && lifelineData && (
                 <div className="text-center">
+                  <div className="flex items-center justify-center gap-4 mb-10">
+                    <div className="w-10 h-[2px] bg-[#EF6637]" />
+                    <span className="text-[#EF6637] text-[16px] font-black tracking-[0.4em] uppercase font-sans italic">
+                      SAYINGS OF THE SAGE
+                    </span>
+                  </div>
                   <div className="w-32 h-32 rounded-[32px] bg-[#4A2B28] flex items-center justify-center mx-auto mb-10 shadow-2xl border-2 border-[#F0A844]/40">
                     <BookOpen size={64} className="text-[#F0A844]" />
                   </div>
-                  <h3 className="text-[#F0A844] font-serif font-black text-3xl italic mb-6">Scholarly Guidance</h3>
-                  <p className="text-white text-2xl font-serif italic leading-relaxed mb-12">&ldquo;{lifelineData.hintText}&rdquo;</p>
+                  <h3 className="text-[#F0A844] font-serif font-black text-2xl uppercase tracking-widest mb-6">PROF. KWAME — COMMUNITY ELDER</h3>
+                  <div className="bg-[#4A2B28]/40 p-12 rounded-[32px] mb-12 border border-white/5 shadow-inner">
+                    <p className="text-white text-[32px] font-serif italic leading-relaxed">&ldquo;{lifelineData.hintText}&rdquo;</p>
+                  </div>
+                  <button onClick={() => setActiveLifeline(null)} className="w-full h-20 bg-[#EF6637] text-white font-black text-xl rounded-2xl shadow-2xl uppercase tracking-widest font-serif italic">I Hear the Elder's Wisdom</button>
+                  <p className="mt-8 text-white/20 text-[12px] font-black tracking-widest uppercase">This lifeline has been consumed for the current evaluation.</p>
                 </div>
               )}
 
               {activeLifeline === 'class' && lifelineData && (
                 <div className="text-center">
-                  <h3 className="text-[#F0A844] font-serif font-black text-4xl italic mb-12">Collective Consensus</h3>
+                  <div className="flex items-center justify-center gap-4 mb-10">
+                    <div className="w-10 h-[2px] bg-[#EF6637]" />
+                    <span className="text-[#EF6637] text-[16px] font-black tracking-[0.4em] uppercase font-sans italic">
+                      ASK THE CLASS: COHORT VOTE
+                    </span>
+                  </div>
+                  <h3 className="text-white/60 font-serif italic text-2xl mb-12">Live vote from your cohort — 24 responses</h3>
                   <div className="space-y-6 mb-12">
-                    {Object.entries(lifelineData.votes).map(([ansId, count]) => {
+                    {q.answers.map((ans, idx) => {
+                      const count = lifelineData.votes[ans.AnswerId] || 0
                       const percentage = lifelineData.totalVotes ? Math.round((count / lifelineData.totalVotes) * 100) : 0
+                      const isMostVoted = percentage === Math.max(...Object.values(lifelineData.votes).concat([0])) && percentage > 0
                       return (
-                        <div key={ansId} className="flex items-center gap-6">
-                          <span className="w-12 font-black text-[#F0A844] text-xl font-serif">{ansId}</span>
-                          <div className="flex-1 h-6 bg-white/5 rounded-full overflow-hidden p-1 border border-white/10">
+                        <div key={ans.AnswerId} className="flex items-center gap-6">
+                          <span className="w-12 font-black text-[#F0A844] text-xl font-serif">{String.fromCharCode(65+idx)}</span>
+                          <div className="flex-1 h-12 bg-white/5 rounded-2xl overflow-hidden p-1 border border-white/10 relative">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${percentage}%` }}
-                              className="h-full bg-[#EF6637] rounded-full shadow-[0_0_15px_rgba(239,102,55,0.5)]"
+                              className={`h-full rounded-xl shadow-2xl ${isMostVoted ? 'bg-[#EF6637]' : 'bg-[#4A2B28]'}`}
                             />
+                            {isMostVoted && (
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white tracking-widest uppercase">MOST VOTED</span>
+                            )}
                           </div>
                           <span className="w-16 text-right font-black text-white text-xl">{percentage}%</span>
                         </div>
                       )
                     })}
                   </div>
+                  <div className="flex gap-6">
+                    <button onClick={() => setActiveLifeline(null)} className="flex-1 h-20 bg-[#EF6637] text-white font-black text-xl rounded-2xl shadow-2xl uppercase tracking-widest font-serif italic">Go with the Community</button>
+                    <button onClick={() => setActiveLifeline(null)} className="flex-1 h-20 border-4 border-white/10 text-white/40 font-black text-xl rounded-2xl hover:bg-white/5 uppercase tracking-widest font-serif italic">Trust Yourself</button>
+                  </div>
                 </div>
               )}
-
-              <button
-                onClick={() => setActiveLifeline(null)}
-                className="w-full h-20 rounded-2xl bg-[#EF6637] text-white font-black text-xl uppercase tracking-widest hover:bg-[#f27a52] transition-all shadow-2xl font-serif italic"
-              >
-                Return to Hot Seat
-              </button>
             </motion.div>
           </motion.div>
         )}
