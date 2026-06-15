@@ -74,7 +74,12 @@ function App() {
       case ROUTES.SETTINGS:
         return <SettingsPage onNavigate={onNavigate} />
       case ROUTES.VICTORY:
-        return <VictoryPage onNavigate={onNavigate} />
+        return (
+          <VictoryPage
+            onNavigate={onNavigate}
+            result={nav.params.result}
+          />
+        )
       case ROUTES.GUEST_LOBBY:
         return <GuestWaitingLobbyPage onNavigate={onNavigate} />
       case ROUTES.HOST_LOBBY:
@@ -84,9 +89,20 @@ function App() {
       case ROUTES.ELIMINATION_SPECTATOR:
         return <EliminationSpectatorPage onNavigate={onNavigate} />
       case ROUTES.MULTIPLAYER_STANDINGS:
-        return <MultiplayerFinalStandingsPage onNavigate={onNavigate} />
+        return (
+          <MultiplayerFinalStandingsPage
+            onNavigate={onNavigate}
+            gameId={nav.params.gameId}
+            results={nav.params.results}
+          />
+        )
       case ROUTES.MULTIPLAYER_REVIEW:
-        return <MultiplayerReviewPage onNavigate={onNavigate} />
+        return (
+          <MultiplayerReviewPage
+            onNavigate={onNavigate}
+            gameId={nav.params.gameId}
+          />
+        )
       default:
         return <LoginPage onNavigate={onNavigate} />
     }

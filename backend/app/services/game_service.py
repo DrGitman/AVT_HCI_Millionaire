@@ -5,6 +5,7 @@ from sqlalchemy import text
 import random
 from app.models.game import Game
 from app.models.player import Player
+from app.models.player_game_lifeline import PlayerGameLifeline
 from app.models.question import Question
 from app.models.answer import Answer
 from app.models.player_game_answer import PlayerGameAnswer
@@ -28,26 +29,21 @@ def _compute_badges(total_correct: int) -> list[dict]:
     return [b for b in BADGES if total_correct >= b["threshold"]]
 
 def create_game(request: GameCreateRequest, player: Player, db: Session) -> GameResponse:
-    # Reset lifelines for the new game
-    player.lifeLine5050 = True
-    player.lifeLinePhone = True
-    player.lifeLineNotes = True
-    player.lifeLineAskClass = True
-    db.add(player)
-
     # Use stored procedure:
-    # CALL sp_CreateGame(p_player1, p_player2, p_player3, p_player4, p_category_ids, p_maxPlayers, OUT p_GameId, OUT p_gameCode)
+    # CALL sp_CreateGame(p_player1, p_player2, p_player3, p_player4, p_category_ids, p_maxPlayers, p_gameMode, p_timeLimit, OUT p_GameId, OUT p_gameCode)
     cat_ids = request.categoryIds if request.categoryIds else [1, 2, 3, 4, 5]
 
     result = db.execute(
-        text("CALL sp_CreateGame(:p1, :p2, :p3, :p4, :cats, :max, NULL, NULL)"),
+        text("CALL sp_CreateGame(:p1, :p2, :p3, :p4, :cats, :max, :mode, :limit, NULL, NULL)"),
         {
             "p1": player.PlayerId,
             "p2": request.player2Id,
             "p3": request.player3Id,
             "p4": request.player4Id,
             "cats": cat_ids,
-            "max": request.maxPlayers
+            "max": request.maxPlayers,
+            "mode": request.gameMode,
+            "limit": request.timeLimit
         }
     ).fetchone()
 
@@ -135,11 +131,12 @@ def get_game_state(game_id: int, player: Player, db: Session) -> GameStateRespon
             ],
         )
 
+    pgl = db.query(PlayerGameLifeline).filter(PlayerGameLifeline.GameId == game_id, PlayerGameLifeline.PlayerId == player.PlayerId).first()
     lifelines = {
-        "askClass":    player.lifeLineAskClass,
-        "fiftyFifty":  player.lifeLine5050,
-        "phoneAPeer":  player.lifeLinePhone,
-        "courseNotes": player.lifeLineNotes,
+        "askClass":    pgl.lifeLineAskClass if pgl else False,
+        "fiftyFifty":  pgl.lifeLine5050 if pgl else False,
+        "phoneAPeer":  pgl.lifeLinePhone if pgl else False,
+        "courseNotes": pgl.lifeLineNotes if pgl else False,
     }
 
     return GameStateResponse(
@@ -320,3 +317,49 @@ def _recompute_ranks(db: Session) -> None:
     for i, entry in enumerate(entries, start=1):
         entry.rank = i
     db.commit()
+
+def activate_game(game_id: int, current_player: Player, db: Session):
+    game = _get_game_or_404(game_id, db)
+    if game.player1 != current_player.PlayerId:
+        raise HTTPException(status_code=403, detail="Only host can start the game")
+    game.status = "active"
+    db.commit()
+    return {"message": "Game activated"}
+
+def leave_game(game_id: int, current_player: Player, db: Session):
+    game = _get_game_or_404(game_id, db)
+    if game.player1 == current_player.PlayerId:
+        game.status = "abandoned"
+    elif game.player2 == current_player.PlayerId:
+        game.player2 = None
+    elif game.player3 == current_player.PlayerId:
+        game.player3 = None
+    elif game.player4 == current_player.PlayerId:
+        game.player4 = None
+    db.commit()
+    return {"message": "Left game"}
+
+def get_game_review(game_id: int, db: Session):
+    from app.models.player_game_answer import PlayerGameAnswer
+    from app.models.answer import Answer
+    from app.models.question import Question
+
+    pga = db.query(PlayerGameAnswer).filter(PlayerGameAnswer.GameId == game_id).all()
+    review = []
+    for user_ans in pga:
+        # Find correct answer for this question
+        correct_ans = db.query(Answer).filter(
+            Answer.QuestionId == user_ans.QuestionId,
+            Answer.isCorrect == True
+        ).first()
+
+        review.append({
+            "question_num": user_ans.questionSequence,
+            "question_text": user_ans.question.question,
+            "user_answer": user_ans.answer.answer,
+            "correct_answer": correct_ans.answer if correct_ans else "Unknown",
+            "is_correct": user_ans.isCorrect,
+            "justification": correct_ans.justification if correct_ans else "",
+            "source": user_ans.question.category.categoryName # Using category as a placeholder for source
+        })
+    return review

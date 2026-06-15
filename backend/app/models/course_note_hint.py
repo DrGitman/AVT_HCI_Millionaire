@@ -19,10 +19,6 @@ class CourseNoteHint(Base):
     question: Mapped["Question"] = relationship(
         "Question", back_populates="course_note_hints"
     )
-    players_used: Mapped[list["Player"]] = relationship(
-        "Player", back_populates="notes_hint_result",
-        foreign_keys="Player.lifeLineNotesResult"
-    )
 
     def __repr__(self) -> str:
         return f"<CourseNoteHint id={self.CourseNoteHintId}>"

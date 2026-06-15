@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Trophy, Shield, LogOut, Volume2, Volume1, ChevronRight } from 'lucide-react'
 import { PageBackHeader } from '../components/PageBackHeader'
 import { ROUTES } from '../navigation/routes'
+import { api } from '../lib/api'
 
 const THEMES = ['Heritage Earth', 'Afro-Futurism', 'Minimalist']
 
@@ -10,6 +11,18 @@ const SettingsPage = ({ onNavigate }) => {
   const [speedInvites, setSpeedInvites] = useState(true)
   const [theme, setTheme] = useState('Heritage Earth')
   const [volume, setVolume] = useState(85)
+
+  useEffect(() => {
+    api.getSettings().then(data => {
+      setSpeedInvites(data.allowSpeedInvites)
+      setTheme(data.themePreference)
+      setVolume(data.volumeLevel)
+    }).catch(console.error)
+  }, [])
+
+  const updateSetting = (patch) => {
+    api.updateSettings(patch).catch(console.error)
+  }
 
   return (
     <div className="min-h-screen bg-[#0D0908] font-sans pb-24">
@@ -42,7 +55,11 @@ const SettingsPage = ({ onNavigate }) => {
                 type="button"
                 role="switch"
                 aria-checked={speedInvites}
-                onClick={() => setSpeedInvites(!speedInvites)}
+                onClick={() => {
+                  const next = !speedInvites
+                  setSpeedInvites(next)
+                  updateSetting({ allowSpeedInvites: next })
+                }}
                 className={`w-20 h-10 rounded-full transition-all relative ${
                   speedInvites ? 'bg-[#EF6637] shadow-[0_0_20px_rgba(239,102,55,0.4)]' : 'bg-[#0D0908]'
                 } border-2 border-white/10`}
@@ -74,7 +91,10 @@ const SettingsPage = ({ onNavigate }) => {
                     <button
                       key={t}
                       type="button"
-                      onClick={() => setTheme(t)}
+                      onClick={() => {
+                        setTheme(t)
+                        updateSetting({ themePreference: t })
+                      }}
                       className={`w-full py-5 text-[16px] font-black transition-all rounded-xl font-serif italic tracking-tight ${
                         theme === t
                           ? 'bg-[#EF6637] text-white shadow-xl scale-[1.02]'
@@ -105,7 +125,11 @@ const SettingsPage = ({ onNavigate }) => {
                       min={0}
                       max={100}
                       value={volume}
-                      onChange={(e) => setVolume(Number(e.target.value))}
+                      onChange={(e) => {
+                        const val = Number(e.target.value)
+                        setVolume(val)
+                        updateSetting({ volumeLevel: val })
+                      }}
                       className="w-full h-3 appearance-none bg-[#0D0908] rounded-full cursor-pointer accent-[#EF6637]"
                     />
                   </div>
