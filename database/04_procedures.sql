@@ -15,14 +15,15 @@ BEGIN
   p_playerCode := 'PLY' || LPAD(v_sequence::TEXT, 6, '0');
 
   INSERT INTO "Player" (
-    "playerCode", "username", "email", "passwordHash", "name",
-    "lifeLineAskClass", "lifeLine5050", "lifeLinePhone", "lifeLineNotes"
+    "playerCode", "username", "email", "passwordHash", "name"
   ) VALUES (
-    p_playerCode, p_username, p_email, p_passwordHash, p_name,
-    true, true, true, true
+    p_playerCode, p_username, p_email, p_passwordHash, p_name
   ) RETURNING "PlayerId" INTO p_PlayerId;
 
   INSERT INTO "Leaderboard" ("PlayerId") VALUES (p_PlayerId)
+  ON CONFLICT ("PlayerId") DO NOTHING;
+
+  INSERT INTO "PlayerSettings" ("PlayerId") VALUES (p_PlayerId)
   ON CONFLICT ("PlayerId") DO NOTHING;
 END;
 $$;
@@ -34,6 +35,8 @@ CREATE OR REPLACE PROCEDURE sp_CreateGame(
   IN p_player4 INTEGER DEFAULT NULL,
   IN p_category_ids INTEGER[] DEFAULT ARRAY[1,2,3,4,5],
   IN p_maxPlayers INTEGER DEFAULT 4,
+  IN p_gameMode VARCHAR DEFAULT 'Real-Time Speed',
+  IN p_timeLimit INTEGER DEFAULT 45,
   OUT p_GameId INTEGER,
   OUT p_gameCode VARCHAR
 )
@@ -42,18 +45,24 @@ AS $$
 DECLARE
   v_sequence INTEGER;
   v_category INTEGER;
+  v_player_id INTEGER;
 BEGIN
   SELECT COALESCE(MAX("GameId"), 0) + 1 INTO v_sequence FROM "Game";
   p_gameCode := 'GAM' || LPAD(v_sequence::TEXT, 6, '0');
 
-  INSERT INTO "Game" ("gameCode", "player1", "player2", "player3", "player4", "maxPlayers", "status", "startTime")
-  VALUES (p_gameCode, p_player1, p_player2, p_player3, p_player4, p_maxPlayers, 'waiting', now())
+  INSERT INTO "Game" ("gameCode", "player1", "player2", "player3", "player4", "maxPlayers", "gameMode", "timeLimit", "status", "startTime")
+  VALUES (p_gameCode, p_player1, p_player2, p_player3, p_player4, p_maxPlayers, p_gameMode, p_timeLimit, 'waiting', now())
   RETURNING "GameId" INTO p_GameId;
 
   FOREACH v_category IN ARRAY p_category_ids LOOP
     INSERT INTO "GameCategory" ("gameCategoryCode", "GameId", "CategoryId")
     VALUES ('GMC' || LPAD((SELECT COALESCE(MAX("GameCategoryId"), 0) + 1 FROM "GameCategory")::TEXT, 6, '0'), p_GameId, v_category)
     ON CONFLICT ("GameId", "CategoryId") DO NOTHING;
+  END LOOP;
+
+  -- Initialize lifelines for all players
+  FOR v_player_id IN SELECT unnest(ARRAY[p_player1, p_player2, p_player3, p_player4]) WHERE unnest IS NOT NULL LOOP
+    INSERT INTO "PlayerGameLifeline" ("PlayerId", "GameId") VALUES (v_player_id, p_GameId);
   END LOOP;
 END;
 $$;
@@ -140,22 +149,26 @@ DECLARE
 BEGIN
   IF p_lifelineType = 'AskClass' THEN
     p_result := json_build_object('A', '20%', 'B', '20%', 'C', '40%', 'D', '20%')::TEXT;
-    UPDATE "Player" SET "lifeLineAskClass" = false, "lifeLineAskClassResult" = p_result WHERE "PlayerId" = p_PlayerId;
+    UPDATE "PlayerGameLifeline" SET "lifeLineAskClass" = false, "lifeLineAskClassResult" = p_result
+    WHERE "PlayerId" = p_PlayerId AND "GameId" = p_GameId;
   ELSIF p_lifelineType = '5050' THEN
     SELECT "AnswerId" INTO v_wrong_answer1 FROM "Answer" WHERE "QuestionId" = p_QuestionId AND NOT "isCorrect" ORDER BY random() LIMIT 1;
     SELECT "AnswerId" INTO v_wrong_answer2 FROM "Answer" WHERE "QuestionId" = p_QuestionId AND NOT "isCorrect" AND "AnswerId" <> v_wrong_answer1 ORDER BY random() LIMIT 1;
     p_result := json_build_object('removeAnswer1', v_wrong_answer1, 'removeAnswer2', v_wrong_answer2)::TEXT;
-    UPDATE "Player" SET "lifeLine5050" = false WHERE "PlayerId" = p_PlayerId;
+    UPDATE "PlayerGameLifeline" SET "lifeLine5050" = false
+    WHERE "PlayerId" = p_PlayerId AND "GameId" = p_GameId;
   ELSIF p_lifelineType = 'Phone' THEN
     SELECT "PhoneAPeerHintId", "avatarName", "hintText" INTO v_hint_id, v_avatar_name, v_hint_text
     FROM "PhoneAPeerHint" WHERE "QuestionId" = p_QuestionId AND "isActive" = true LIMIT 1;
     p_result := json_build_object('avatarName', v_avatar_name, 'hint', v_hint_text)::TEXT;
-    UPDATE "Player" SET "lifeLinePhone" = false, "lifeLinePhoneResult" = v_hint_id WHERE "PlayerId" = p_PlayerId;
+    UPDATE "PlayerGameLifeline" SET "lifeLinePhone" = false, "lifeLinePhoneResult" = v_hint_id
+    WHERE "PlayerId" = p_PlayerId AND "GameId" = p_GameId;
   ELSE
     SELECT "CourseNoteHintId", "noteText" INTO v_hint_id, v_hint_text
     FROM "CourseNoteHint" WHERE "QuestionId" = p_QuestionId AND "isActive" = true LIMIT 1;
     p_result := json_build_object('note', v_hint_text)::TEXT;
-    UPDATE "Player" SET "lifeLineNotes" = false, "lifeLineNotesResult" = v_hint_id WHERE "PlayerId" = p_PlayerId;
+    UPDATE "PlayerGameLifeline" SET "lifeLineNotes" = false, "lifeLineNotesResult" = v_hint_id
+    WHERE "PlayerId" = p_PlayerId AND "GameId" = p_GameId;
   END IF;
 END;
 $$;

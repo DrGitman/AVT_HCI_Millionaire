@@ -10,6 +10,10 @@ from app.models.game_category import GameCategory
 from app.models.player_game_answer import PlayerGameAnswer
 from app.models.ask_the_class_vote import AskTheClassVote
 from app.models.leaderboard import Leaderboard
+from app.models.player_game_lifeline import PlayerGameLifeline
+from app.models.notification import Notification
+from app.models.achievement import Achievement, PlayerAchievement
+from app.models.settings import PlayerSettings
 
 __all__ = [
     "Category",
@@ -24,4 +28,9 @@ __all__ = [
     "PlayerGameAnswer",
     "AskTheClassVote",
     "Leaderboard",
+    "PlayerGameLifeline",
+    "Notification",
+    "Achievement",
+    "PlayerAchievement",
+    "PlayerSettings",
 ]

@@ -10,7 +10,14 @@ const STATS = [
   { label: 'COHORT RANK', value: 'Top 0.1%', accent: true },
 ]
 
-const VictoryPage = ({ onNavigate }) => (
+const VictoryPage = ({ onNavigate, result }) => {
+  const stats = [
+    { label: 'FINAL PRIZE', value: result?.total_prize || '$1,000,000', accent: true },
+    { label: 'ACCURACY', value: `${result?.correct_answers || 15} / 15 Correct`, accent: false },
+    { label: 'COHORT RANK', value: result?.rank || 'Top 0.1%', accent: true },
+  ]
+
+  return (
   <div className="min-h-screen bg-[#0D0908] font-sans selection:bg-[#EF6637]/30 text-[#F5F2F0] overflow-hidden relative">
     {/* Background Decorative Rings */}
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1400px] h-[1400px] border-[1px] border-white/5 rounded-full -z-0" />
@@ -73,7 +80,7 @@ const VictoryPage = ({ onNavigate }) => (
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 mb-24 w-full max-w-6xl">
-        {STATS.map((stat, i) => (
+        {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 30 }}
@@ -128,6 +135,7 @@ const VictoryPage = ({ onNavigate }) => (
       </motion.div>
     </div>
   </div>
-)
+  )
+}
 
 export default VictoryPage

@@ -156,15 +156,13 @@ const GamePage = ({ onNavigate }) => {
             className="h-16 w-auto object-contain cursor-pointer transition-transform hover:scale-105"
             onClick={() => onNavigate(ROUTES.HOME)}
           />
-          <div className="w-[2px] h-10 bg-white/10" />
-          <h2 className="text-[#F0A844] font-black text-[24px] font-serif italic tracking-tighter uppercase">Hot Seat: Scholar Level 10</h2>
         </div>
         <button
           type="button"
           onClick={() => onNavigate(ROUTES.HOME)}
           className="bg-[#EF6637] hover:bg-[#F27A52] text-white font-black text-[14px] px-14 py-3 rounded-xl transition-all shadow-[0_10px_20px_rgba(239,102,55,0.3)] active:scale-95 uppercase tracking-widest"
         >
-          Terminate Session
+          Quit
         </button>
       </header>
 
@@ -227,7 +225,7 @@ const GamePage = ({ onNavigate }) => {
               <div className="w-16 h-16 rounded-2xl bg-[#4A2B28] flex items-center justify-center shrink-0 border border-[#F0A844]/20 group-hover:scale-110 transition-transform duration-500 shadow-xl">
                 <Brain size={32} strokeWidth={2.5} className="text-[#F0A844] group-hover:text-[#EF6637] transition-colors" />
               </div>
-              <span className="text-[#F5F2F0]/80 text-[18px] font-black tracking-tight font-serif italic group-hover:text-white transition-colors">Sage Advice</span>
+              <span className="text-[#F5F2F0]/80 text-[18px] font-black tracking-tight font-serif italic group-hover:text-white transition-colors">Sayings of the Sage</span>
             </button>
           </div>
         </aside>

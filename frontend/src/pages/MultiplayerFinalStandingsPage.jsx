@@ -1,56 +1,34 @@
 import { useState } from 'react'
-import { RefreshCw, Eye, Share2 } from 'lucide-react'
+import { RefreshCw, Eye, Share2, Trophy } from 'lucide-react'
 import { ROUTES } from '../navigation/routes'
 import { AppNavBar } from '../components/AppNavBar'
 import { motion } from 'framer-motion'
 import { getNavActive } from '../navigation/navActive'
 
-const PODIUM = [
-  {
-    rank: 3,
-    name: 'Amara',
-    title: 'EMERGING SAGE',
-    height: 'h-[240px]',
-    order: 'order-1',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amara',
-    color: 'bg-[#3b2826]',
-    titleColor: 'text-[#ef6637]',
-  },
-  {
-    rank: 1,
-    name: 'Julian',
-    title: 'HCI SAGE',
-    score: '1,000,000',
-    height: 'h-[380px]',
-    order: 'order-2',
-    highlight: true,
-    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=400&auto=format&fit=crop', // Real photo look like design
-    color: 'bg-gradient-to-b from-[#F0A844] to-[#3b2826]',
-    titleColor: 'text-[#F0A844]',
-  },
-  {
-    rank: 2,
-    name: 'Sarah',
-    title: 'UBUNTU SCHOLAR',
-    height: 'h-[300px]',
-    order: 'order-3',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-    color: 'bg-[#533330]',
-    titleColor: 'text-[#F0A844]',
-  },
-  {
-    rank: 4,
-    name: 'Kofi',
-    title: 'COMMUNITY LEARNER',
-    height: 'h-[160px]',
-    order: 'order-4',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kofi',
-    color: 'bg-[#211A19]',
-    titleColor: 'text-[#F5F2F0]/40',
-  },
-]
+const MultiplayerFinalStandingsPage = ({ onNavigate, results, gameId }) => {
+  // Sort results by rank if provided, otherwise fallback to defaults
+  const sortedResults = results ? [...results].sort((a, b) => a.rank - b.rank) : [
+    { rank: 1, name: 'Julian', title: 'HCI SAGE', score: '1,000,000', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=400&auto=format&fit=crop' },
+    { rank: 2, name: 'Sarah', title: 'UBUNTU SCHOLAR', score: '500,000', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah' },
+    { rank: 3, name: 'Amara', title: 'EMERGING SAGE', score: '250,000', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amara' },
+    { rank: 4, name: 'Kofi', title: 'COMMUNITY LEARNER', score: '100,000', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kofi' },
+  ]
 
-const MultiplayerFinalStandingsPage = ({ onNavigate }) => {
+  const winner = sortedResults[0]
+
+  const getPodiumData = (res) => {
+     return res.map(p => ({
+        ...p,
+        height: p.rank === 1 ? 'h-[380px]' : p.rank === 2 ? 'h-[300px]' : p.rank === 3 ? 'h-[240px]' : 'h-[160px]',
+        order: p.rank === 1 ? 'order-2' : p.rank === 2 ? 'order-3' : p.rank === 3 ? 'order-1' : 'order-4',
+        highlight: p.rank === 1,
+        color: p.rank === 1 ? 'bg-gradient-to-b from-[#F0A844] to-[#3b2826]' : p.rank === 2 ? 'bg-[#533330]' : p.rank === 3 ? 'bg-[#3b2826]' : 'bg-[#211A19]',
+        titleColor: p.rank === 1 ? 'text-[#F0A844]' : p.rank === 2 ? 'text-[#F0A844]' : p.rank === 3 ? 'text-[#ef6637]' : 'text-[#F5F2F0]/40'
+     }))
+  }
+
+  const podium = getPodiumData(sortedResults.slice(0, 4))
+
   const [copiedLink, setCopiedLink] = useState(false)
 
   const handleShare = () => {
@@ -77,8 +55,8 @@ const MultiplayerFinalStandingsPage = ({ onNavigate }) => {
           <div className="relative inline-block mb-10">
             <div className="w-[220px] h-[220px] rounded-full border-[8px] border-[#f0a844] p-1 shadow-[0_0_80px_rgba(240,168,68,0.4)] overflow-hidden">
               <img
-                src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=400&auto=format&fit=crop"
-                alt="Julian"
+                src={winner.avatar || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=400&auto=format&fit=crop"}
+                alt={winner.name}
                 className="w-full h-full object-cover rounded-full"
               />
             </div>
@@ -87,7 +65,7 @@ const MultiplayerFinalStandingsPage = ({ onNavigate }) => {
             </div>
           </div>
           <h1 className="text-[72px] md:text-[88px] font-serif font-black text-[#F0A844] mb-4 italic tracking-tighter leading-none">
-            Julian is the HCI Sage!
+            {winner.name} is the HCI Sage!
           </h1>
           <p className="text-[#F5F2F0]/40 italic text-[28px] font-serif">
             &ldquo;The community&apos;s wisest mind — for now.&rdquo;
@@ -96,7 +74,7 @@ const MultiplayerFinalStandingsPage = ({ onNavigate }) => {
 
         {/* Podium */}
         <div className="flex items-end justify-center gap-4 w-full max-w-6xl mb-24 px-4">
-          {PODIUM.map((p) => (
+          {podium.map((p) => (
             <motion.div
               key={p.rank}
               initial={{ opacity: 0, y: 50 }}
@@ -201,7 +179,7 @@ const MultiplayerFinalStandingsPage = ({ onNavigate }) => {
             Play Again
           </button>
           <button
-            onClick={() => onNavigate(ROUTES.MULTIPLAYER_REVIEW)}
+            onClick={() => onNavigate(ROUTES.MULTIPLAYER_REVIEW, { gameId })}
             className="flex items-center justify-center gap-6 px-12 h-24 rounded-[32px] bg-[#1A1312] border-4 border-white/10 text-white font-black text-[24px] hover:bg-[#4A2B28] transition-all active:scale-95 flex-1 font-serif italic tracking-tight uppercase shadow-2xl"
           >
             <Eye size={32} strokeWidth={3} className="text-[#F0A844]" />

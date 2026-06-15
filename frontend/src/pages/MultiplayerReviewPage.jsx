@@ -1,35 +1,28 @@
 import { motion } from 'framer-motion'
-import { RefreshCw, ArrowLeft } from 'lucide-react'
+import { RefreshCw, ArrowLeft, Clock, BookOpen } from 'lucide-react'
 import { ROUTES } from '../navigation/routes'
+import { useState, useEffect } from 'react'
+import { api } from '../lib/api'
 
-const REVIEW_CARDS = [
-  {
-    id: 'q1',
-    num: 'QUESTION 01',
-    scholarsCount: '11/12 scholars correct',
-    fastestTime: '4s',
-    question:
-      'In a communal HCI framework, which stakeholder group should be consulted first during the requirements elicitation phase?',
-    correctAnswer: 'The designated community elders',
-    source: 'African HCI Frameworks, 2023',
-    players: ['A', 'M', 'K'],
-    others: 9,
-  },
-  {
-    id: 'q2',
-    num: 'QUESTION 02',
-    scholarsCount: '8/12 scholars correct',
-    fastestTime: '7s',
-    question:
-      'How do Adinkra symbols influence iconographic design in contemporary West African user interfaces?',
-    correctAnswer: 'By mapping abstract values to utilitarian functions',
-    source: 'Journal of African Digital Design, 2022',
-    players: ['S', 'J', 'L'],
-    others: 5,
-  },
-]
+const MultiplayerReviewPage = ({ onNavigate, gameId }) => {
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
 
-const MultiplayerReviewPage = ({ onNavigate }) => {
+  useEffect(() => {
+    const fetchReview = async () => {
+      try {
+        const data = await api.request(`/game/${gameId}/review`)
+        setReviews(data)
+      } catch (err) {
+        console.error('Failed to fetch review:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (gameId) fetchReview()
+    else setLoading(false)
+  }, [gameId])
+
   return (
     <div className="min-h-screen bg-[#0D0908] text-[#F5F2F0] pb-32 font-sans overflow-hidden relative">
       {/* Background Decorative Elements */}
@@ -53,9 +46,9 @@ const MultiplayerReviewPage = ({ onNavigate }) => {
 
       <div className="max-w-[1200px] mx-auto px-10 relative z-10">
         <div className="space-y-16 mb-24">
-          {REVIEW_CARDS.map((card, idx) => (
+          {reviews.length > 0 ? reviews.map((card, idx) => (
             <motion.div
-              key={card.id}
+              key={idx}
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.2 }}
@@ -66,38 +59,27 @@ const MultiplayerReviewPage = ({ onNavigate }) => {
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-[2px] bg-[#EF6637]" />
                   <span className="text-[16px] font-black text-[#EF6637] tracking-[0.4em] uppercase font-sans italic">
-                    {card.num}
+                    QUESTION {String(card.question_num).padStart(2, '0')}
                   </span>
                 </div>
                 <div className="text-right text-[14px] uppercase tracking-widest text-white/30 font-black font-sans italic">
-                  <p className="group-hover:text-white/60 transition-colors">{card.scholarsCount}</p>
-                  <p className="text-[#EF6637] mt-2 flex items-center justify-end gap-2 text-[16px]">
-                    <Clock size={16} strokeWidth={3} /> Fastest: {card.fastestTime}
+                   <p className={`${card.is_correct ? 'text-green-500' : 'text-[#EF6637]'}`}>
+                    {card.is_correct ? 'CORRECTLY SOLVED' : 'INCORRECT ATTEMPT'}
                   </p>
                 </div>
               </div>
 
-              {/* Player Avatars */}
-              <div className="flex items-center gap-4 mb-12">
-                <div className="flex -space-x-3">
-                  {card.players.map((p, i) => (
-                    <div
-                      key={i}
-                      className="w-12 h-12 rounded-full bg-[#4A2B28] border-2 border-[#1A1312] flex items-center justify-center text-[14px] font-black text-[#F0A844] shadow-xl font-serif italic"
-                    >
-                      {p}
-                    </div>
-                  ))}
+              {/* User's Choice */}
+              {!card.is_correct && (
+                <div className="mb-6">
+                   <span className="text-white/20 text-xs uppercase tracking-widest font-black">Your selection:</span>
+                   <p className="text-white/60 font-serif italic text-xl">{card.user_answer}</p>
                 </div>
-                <div className="w-1 h-1 rounded-full bg-white/20 mx-2" />
-                <span className="text-[14px] font-black text-[#F5F2F0]/20 tracking-[0.2em] uppercase font-sans">
-                  +{card.others} scholars matched
-                </span>
-              </div>
+              )}
 
               {/* Question Text */}
               <p className="font-serif font-black text-[42px] md:text-[52px] leading-[1.1] mb-16 text-white tracking-tighter italic">
-                &ldquo;{card.question}&rdquo;
+                &ldquo;{card.question_text}&rdquo;
               </p>
 
               {/* Correct Answer */}
@@ -106,9 +88,18 @@ const MultiplayerReviewPage = ({ onNavigate }) => {
                   CORRECT ARCHIVE
                 </span>
                 <span className="font-serif text-[#F0A844] text-[36px] md:text-[44px] leading-tight font-black italic tracking-tight">
-                  {card.correctAnswer}
+                  {card.correct_answer}
                 </span>
               </div>
+
+              {/* Justification */}
+              {card.justification && (
+                 <div className="mb-12 p-8 bg-black/20 rounded-2xl border border-white/5">
+                    <p className="text-[#F5F2F0]/60 italic font-serif text-[22px] leading-relaxed">
+                      {card.justification}
+                    </p>
+                 </div>
+              )}
 
               {/* Source */}
               <div className="flex items-center gap-3 text-[#F5F2F0]/20 font-serif italic text-[18px]">
@@ -116,7 +107,11 @@ const MultiplayerReviewPage = ({ onNavigate }) => {
                 <span>Reference: {card.source}</span>
               </div>
             </motion.div>
-          ))}
+          )) : (
+            <div className="text-center py-20 bg-[#1A1312] rounded-[48px] border-2 border-white/5">
+                <p className="text-white/20 font-serif italic text-2xl">No question history found for this session.</p>
+            </div>
+          )}
         </div>
 
         {/* Footer Actions */}

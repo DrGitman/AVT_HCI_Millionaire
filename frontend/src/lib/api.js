@@ -25,15 +25,29 @@ export const api = {
   register: (body) => request('/auth/register', { method: 'POST', body }),
   leaderboard: () => request('/leaderboard', { token: localStorage.getItem('hci_token') }),
   me: () => request('/users/me', { token: localStorage.getItem('hci_token') }),
+  updateMe: (body) => request('/users/me', { method: 'PATCH', body, token: localStorage.getItem('hci_token') }),
+  getSettings: () => request('/users/me/settings', { token: localStorage.getItem('hci_token') }),
+  updateSettings: (body) => request('/users/me/settings', { method: 'PATCH', body, token: localStorage.getItem('hci_token') }),
 
   // Game Actions
-  startGame: (categoryIds, maxPlayers = 1) => request('/game/start', {
+  startGame: (categoryIds, maxPlayers = 1, gameMode = "Real-Time Speed", timeLimit = 45) => request('/game/start', {
     method: 'POST',
-    body: { categoryIds, maxPlayers },
+    body: { categoryIds, maxPlayers, gameMode, timeLimit },
     token: localStorage.getItem('hci_token')
   }),
   joinGame: (roomCode) => request(`/game/join/${roomCode}`, {
     method: 'POST',
+    token: localStorage.getItem('hci_token')
+  }),
+  activateGame: (gameId) => request(`/game/${gameId}/activate`, {
+    method: 'POST',
+    token: localStorage.getItem('hci_token')
+  }),
+  leaveGame: (gameId) => request(`/game/${gameId}/leave`, {
+    method: 'POST',
+    token: localStorage.getItem('hci_token')
+  }),
+  getGameReview: (gameId) => request(`/game/${gameId}/review`, {
     token: localStorage.getItem('hci_token')
   }),
   getGameState: (gameId) => request(`/game/${gameId}/state`, {
@@ -72,6 +86,14 @@ export const api = {
   getCategories: () => request('/questions/categories', {
     token: localStorage.getItem('hci_token')
   }),
+
+  // Notifications
+  getNotifications: () => request('/notifications', { token: localStorage.getItem('hci_token') }),
+  markNotifRead: (id) => request(`/notifications/${id}/read`, { method: 'PATCH', token: localStorage.getItem('hci_token') }),
+  markAllNotifsRead: () => request('/notifications/read-all', { method: 'PATCH', token: localStorage.getItem('hci_token') }),
+
+  // Achievements
+  getAchievements: () => request('/achievements', { token: localStorage.getItem('hci_token') }),
 }
 
 export function saveAuthTokens(tokens) {

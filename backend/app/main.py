@@ -7,7 +7,7 @@ from app.config import get_settings
 from app.database import engine, Base
 import app.models  # noqa: F401
 
-from app.routes import auth, users, questions, game, lifelines, leaderboard, achievements
+from app.routes import auth, users, questions, game, lifelines, leaderboard, achievements, notifications
 from app.websockets.game_ws import router as ws_router
 
 settings = get_settings()
@@ -37,7 +37,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,6 +50,7 @@ app.include_router(game.router,        prefix="/game",        tags=["Game"])
 app.include_router(lifelines.router,   prefix="/lifelines",   tags=["Lifelines"])
 app.include_router(leaderboard.router,   prefix="/leaderboard",   tags=["Leaderboard"])
 app.include_router(achievements.router,  prefix="/achievements",  tags=["Achievements"])
+app.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 app.include_router(ws_router,          prefix="/ws",          tags=["WebSocket"])
 
 

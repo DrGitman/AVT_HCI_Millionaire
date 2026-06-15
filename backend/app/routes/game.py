@@ -55,3 +55,33 @@ def finish_game(
     db: Session = Depends(get_db),
 ):
     return end_game(game_id, current_player, db)
+
+
+@router.post("/{game_id}/activate")
+def activate_game(
+    game_id: int,
+    current_player: Player = Depends(get_current_player),
+    db: Session = Depends(get_db),
+):
+    from app.services.game_service import activate_game as svc_activate
+    return svc_activate(game_id, current_player, db)
+
+
+@router.post("/{game_id}/leave")
+def leave_lobby(
+    game_id: int,
+    current_player: Player = Depends(get_current_player),
+    db: Session = Depends(get_db),
+):
+    from app.services.game_service import leave_game as svc_leave
+    return svc_leave(game_id, current_player, db)
+
+
+@router.get("/{game_id}/review")
+def get_review(
+    game_id: int,
+    current_player: Player = Depends(get_current_player),
+    db: Session = Depends(get_db),
+):
+    from app.services.game_service import get_game_review
+    return get_game_review(game_id, db)

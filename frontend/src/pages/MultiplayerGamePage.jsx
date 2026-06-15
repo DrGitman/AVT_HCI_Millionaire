@@ -40,25 +40,12 @@ const LADDER = [
   { level: 1, prize: '$100' },
 ]
 
-const ANSWERS = [
-  { id: 'A', text: 'The local regional government representative' },
-  { id: 'B', text: 'The designated community elders' },
-  { id: 'C', text: 'The youngest literate community demographic' },
-  { id: 'D', text: 'The external international NGO program manager' },
-]
-
-const PLAYERS = [
-  { id: 1, name: 'Julian', prize: '$32,000', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Julian', talking: true, ready: true },
-  { id: 2, name: 'Sarah', prize: '$64,000', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah', talking: false, ready: false, active: true },
-  { id: 3, name: 'Amara', prize: '$16,000', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amara', talking: false, ready: true },
-  { id: 4, name: 'Kofi', prize: '$8,000', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kofi', talking: false, ready: false, muted: true },
-]
-
 const MultiplayerGamePage = ({ onNavigate, roomCode = 'HCI-7F3' }) => {
   const [user, setUser] = useState(null)
-  const [players, setPlayers] = useState(PLAYERS)
-  const [selected, setSelected] = useState('B')
-  const [timeLeft, setTimeLeft] = useState(9)
+  const [game, setGame] = useState(null)
+  const [players, setPlayers] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [timeLeft, setTimeLeft] = useState(45)
   const [activeLifeline, setActiveLifeline] = useState(null)
 
   // Real-time states
@@ -76,6 +63,33 @@ const MultiplayerGamePage = ({ onNavigate, roomCode = 'HCI-7F3' }) => {
   useEffect(() => {
     api.me().then(setUser).catch(console.error)
   }, [])
+
+  const fetchGameState = async () => {
+    if (!roomCode) return
+    try {
+      // Find game by code (requires a lookup endpoint or using GameId)
+      // For now we assume the roomCode is linked to a GameId we can get or we add a lookup
+      const room = await api.joinGame(roomCode) // Re-joining gets game info
+      const state = await api.getGameState(room.GameId)
+      setGame(state)
+      setTimeLeft(state.timeLimit || 45)
+
+      // Map players
+      const pList = []
+      if (room.player1) pList.push({ id: room.player1, name: 'Host', prize: '$0', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Host' })
+      if (room.player2) pList.push({ id: room.player2, name: 'Scholar 2', prize: '$0', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=S2' })
+      if (room.player3) pList.push({ id: room.player3, name: 'Scholar 3', prize: '$0', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=S3' })
+      if (room.player4) pList.push({ id: room.player4, name: 'Scholar 4', prize: '$0', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=S4' })
+      setPlayers(pList)
+
+    } catch (err) {
+      console.error("Failed to fetch game state:", err)
+    }
+  }
+
+  useEffect(() => {
+    fetchGameState()
+  }, [roomCode])
 
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -126,15 +140,33 @@ const MultiplayerGamePage = ({ onNavigate, roomCode = 'HCI-7F3' }) => {
     return () => clearInterval(timer)
   }, [timeLeft])
 
-  const handleSelectAnswer = (id) => {
-    setSelected(id)
-    if (socketRef.current?.readyState === WebSocket.OPEN && user) {
-      socketRef.current.send(JSON.stringify({
-        event: 'player_answered',
-        playerId: user.PlayerId,
-        answerId: id
-      }))
-    }
+  const handleSelectAnswer = (ans) => {
+    if (!game || !user) return
+    setSelected(ans.AnswerId)
+
+    api.submitAnswer(game.GameId, game.currentQuestion.QuestionId, ans.AnswerId, game.currentSequence)
+      .then(res => {
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+          socketRef.current.send(JSON.stringify({
+            event: 'player_answered',
+            playerId: user.PlayerId,
+            isCorrect: res.isCorrect,
+            questionSequence: game.currentSequence
+          }))
+        }
+
+        if (!res.isCorrect) {
+          setTimeout(() => {
+            onNavigate(ROUTES.ELIMINATION_SPECTATOR, { gameId: game.GameId, roomCode })
+          }, 2000)
+        } else if (res.gameOver) {
+          onNavigate(ROUTES.MULTIPLAYER_STANDINGS, { gameId: game.GameId, results: [] })
+        } else {
+          // Advance locally or wait for sync? For now re-fetch state
+          fetchGameState()
+          setSelected(null)
+        }
+      }).catch(console.error)
   }
 
   const handleWebRTCSignal = async (data) => {
@@ -480,32 +512,32 @@ const MultiplayerGamePage = ({ onNavigate, roomCode = 'HCI-7F3' }) => {
               <span className="text-[#F0A844] text-[12px] font-black tracking-[0.5em] uppercase font-sans">COLLECTIVE CHALLENGE</span>
             </div>
             <p className="text-[#F5F2F0] text-[32px] md:text-[36px] leading-[1.4] font-black max-w-5xl mx-auto font-serif italic tracking-tight">
-              You are an HCI designer engaging a San community for the first time. Guided by Philosophical Sagacity, who should you approach first to respect community protocol?
+              {game?.currentQuestion?.question || "Awaiting Next Challenge..."}
             </p>
             <div className="mt-14 w-48 h-[2px] bg-gradient-to-r from-transparent via-[#F0A844]/40 to-transparent mx-auto rounded-full" />
           </div>
 
           {/* Answers Grid */}
           <div className="w-full max-w-[1000px] grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
-            {ANSWERS.map((ans) => (
+            {game?.currentQuestion?.answers.map((ans, idx) => (
               <button
-                key={ans.id}
-                onClick={() => handleSelectAnswer(ans.id)}
+                key={ans.AnswerId}
+                onClick={() => handleSelectAnswer(ans)}
                 className={`flex items-stretch text-left rounded-[32px] border-2 transition-all group overflow-hidden relative ${
-                  selected === ans.id
+                  selected === ans.AnswerId
                     ? 'border-[#F0A844] bg-[#4A2B28] shadow-[0_20px_40px_rgba(0,0,0,0.4)] scale-[1.02]'
                     : 'border-white/5 bg-[#1A1312] hover:border-white/20'
                 }`}
               >
                 <div className={`w-[80px] flex items-center justify-center shrink-0 transition-all font-serif font-black italic text-[32px] ${
-                  selected === ans.id ? 'bg-[#EF6637] text-white shadow-2xl' : 'bg-[#4A2B28] text-white/40 group-hover:text-white/80'
+                  selected === ans.AnswerId ? 'bg-[#EF6637] text-white shadow-2xl' : 'bg-[#4A2B28] text-white/40 group-hover:text-white/80'
                 }`}>
-                  {ans.id}
+                  {String.fromCharCode(65 + idx)}
                 </div>
                 <div className="p-10 flex items-center flex-1">
                   <span className={`text-[22px] font-black leading-snug font-serif italic tracking-tight ${
-                    selected === ans.id ? 'text-white' : 'text-[#F5F2F0]/60 group-hover:text-white'
-                  }`}>{ans.text}</span>
+                    selected === ans.AnswerId ? 'text-white' : 'text-[#F5F2F0]/60 group-hover:text-white'
+                  }`}>{ans.answer}</span>
                 </div>
               </button>
             ))}
@@ -566,31 +598,132 @@ const MultiplayerGamePage = ({ onNavigate, roomCode = 'HCI-7F3' }) => {
         </aside>
       </div>
 
-      {/* Lifeline Overlay Modals - Simplified for now */}
+      {/* Lifeline Overlays */}
       <AnimatePresence>
         {activeLifeline && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#191211]/90 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            onClick={() => setActiveLifeline(null)}
+            className="fixed inset-0 bg-[#0D0908]/95 backdrop-blur-xl z-[100] flex items-center justify-center p-10"
           >
-            {/* Modal content would go here, matching the specific lifeline designs */}
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-[#2d2421] border border-[#F0A844]/30 rounded-3xl p-10 max-w-lg w-full text-center"
-              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-[#1A1312] border-2 border-[#F0A844]/30 rounded-[48px] p-16 max-w-2xl w-full shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative overflow-hidden"
             >
-              <h3 className="text-[#F0A844] font-['Source_Serif_4'] text-3xl font-bold mb-4 capitalize">{activeLifeline.replace('sage', 'Sage Counsel')}</h3>
-              <p className="text-[#F5F2F0]/70 mb-8">This lifeline overlay is currently being aligned with pixel-perfect designs.</p>
               <button
                 onClick={() => setActiveLifeline(null)}
-                className="w-full py-4 rounded-xl bg-[#ef6637] text-[#191211] font-black uppercase tracking-widest"
+                className="absolute top-10 right-10 text-white/20 hover:text-white transition-colors"
               >
-                Close
+                <X size={32} strokeWidth={3} />
               </button>
+
+              {activeLifeline === '5050' && (
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-4 mb-10">
+                    <div className="w-10 h-[2px] bg-[#EF6637]" />
+                    <span className="text-[#EF6637] text-[16px] font-black tracking-[0.4em] uppercase font-sans italic">
+                      LIFELINE: 50:50
+                    </span>
+                  </div>
+                  <h3 className="text-[#F0A844] font-serif font-black text-4xl italic mb-6">Two Answers Eliminated</h3>
+                  <p className="text-white/60 text-xl font-serif italic mb-12">“The balance has been restored — Ma'at in action.”</p>
+                  <div className="space-y-4 mb-12">
+                    {game?.currentQuestion?.answers.map((ans, idx) => (
+                      <div key={ans.AnswerId} className="flex items-center justify-between bg-[#0D0908]/50 p-6 rounded-2xl border border-white/5">
+                        <span className="text-white font-black font-serif italic">{String.fromCharCode(65 + idx)}. {ans.answer}</span>
+                        {idx % 2 === 0 ? (
+                          <span className="text-red-500 font-black text-[12px] tracking-widest uppercase bg-red-500/10 px-4 py-1 rounded-lg border border-red-500/20">ELIMINATED</span>
+                        ) : (
+                          <span className="text-green-500 font-black text-[12px] tracking-widest uppercase bg-green-500/10 px-4 py-1 rounded-lg border border-green-500/20">STILL IN PLAY</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setActiveLifeline(null)} className="w-full h-20 bg-[#EF6637] text-white font-black text-xl rounded-2xl shadow-2xl uppercase tracking-widest font-serif italic">Return Now</button>
+                </div>
+              )}
+
+              {activeLifeline === 'phone' && (
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-4 mb-10">
+                    <div className="w-10 h-[2px] bg-[#EF6637]" />
+                    <span className="text-[#EF6637] text-[16px] font-black tracking-[0.4em] uppercase font-sans italic">
+                      PHONE A PEER: ACTIVE
+                    </span>
+                  </div>
+                  <div className="w-32 h-32 rounded-full border-4 border-[#EF6637] p-1 mx-auto mb-6 shadow-2xl relative">
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Expert`} className="w-full h-full rounded-full bg-[#4A2B28]" />
+                    <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 rounded-full border-4 border-[#1A1312] animate-pulse" />
+                  </div>
+                  <p className="text-[#F0A844] font-black text-[14px] tracking-widest uppercase mb-10">Dr. Mbeki — Senior Fellow <span className="text-green-500 ml-2">• SPEAKING...</span></p>
+                  <div className="bg-[#4A2B28] p-12 rounded-[32px] mb-12 border border-[#F0A844]/20 shadow-inner">
+                    <p className="text-white text-[28px] font-serif italic leading-relaxed">&ldquo;I've researched this extensively. Respecting the hierarchy of the community elders is the most crucial first step in any communal engagement.&rdquo;</p>
+                  </div>
+                  <div className="flex gap-6">
+                    <button onClick={() => setActiveLifeline(null)} className="flex-1 h-20 bg-[#EF6637] text-white font-black text-xl rounded-2xl shadow-2xl uppercase tracking-widest font-serif italic">Thanks — I've Got This</button>
+                    <button onClick={() => setActiveLifeline(null)} className="flex-1 h-20 border-4 border-white/10 text-white/40 font-black text-xl rounded-2xl hover:bg-white/5 uppercase tracking-widest font-serif italic">End Call Early</button>
+                  </div>
+                </div>
+              )}
+
+              {activeLifeline === 'sage' && (
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-4 mb-10">
+                    <div className="w-10 h-[2px] bg-[#EF6637]" />
+                    <span className="text-[#EF6637] text-[16px] font-black tracking-[0.4em] uppercase font-sans italic">
+                      SAYINGS OF THE SAGE
+                    </span>
+                  </div>
+                  <div className="w-32 h-32 rounded-[32px] bg-[#4A2B28] flex items-center justify-center mx-auto mb-10 shadow-2xl border-2 border-[#F0A844]/40">
+                    <BookOpen size={64} className="text-[#F0A844]" />
+                  </div>
+                  <h3 className="text-[#F0A844] font-serif font-black text-2xl uppercase tracking-widest mb-6">PROF. KWAME — COMMUNITY ELDER</h3>
+                  <div className="bg-[#4A2B28]/40 p-12 rounded-[32px] mb-12 border border-white/5 shadow-inner">
+                    <p className="text-white text-[32px] font-serif italic leading-relaxed">&ldquo;Wisdom is not found in the young alone, but in the collective memory of those who walked the path before us.&rdquo;</p>
+                  </div>
+                  <button onClick={() => setActiveLifeline(null)} className="w-full h-20 bg-[#EF6637] text-white font-black text-xl rounded-2xl shadow-2xl uppercase tracking-widest font-serif italic">I Hear the Elder's Wisdom</button>
+                </div>
+              )}
+
+              {activeLifeline === 'class' && (
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-4 mb-10">
+                    <div className="w-10 h-[2px] bg-[#EF6637]" />
+                    <span className="text-[#EF6637] text-[16px] font-black tracking-[0.4em] uppercase font-sans italic">
+                      ASK THE CLASS: COHORT VOTE
+                    </span>
+                  </div>
+                  <h3 className="text-white/60 font-serif italic text-2xl mb-12">Live vote from your cohort — 12 responses</h3>
+                  <div className="space-y-6 mb-12">
+                    {game?.currentQuestion?.answers.map((ans, idx) => {
+                      const percentage = idx === 1 ? 65 : idx === 2 ? 15 : idx === 0 ? 12 : 8
+                      const isMostVoted = idx === 1
+                      return (
+                        <div key={ans.AnswerId} className="flex items-center gap-6">
+                          <span className="w-12 font-black text-[#F0A844] text-xl font-serif">{String.fromCharCode(65 + idx)}</span>
+                          <div className="flex-1 h-12 bg-white/5 rounded-2xl overflow-hidden p-1 border border-white/10 relative">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${percentage}%` }}
+                              className={`h-full rounded-xl shadow-2xl ${isMostVoted ? 'bg-[#EF6637]' : 'bg-[#4A2B28]'}`}
+                            />
+                            {isMostVoted && (
+                              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white tracking-widest uppercase">MOST VOTED</span>
+                            )}
+                          </div>
+                          <span className="w-16 text-right font-black text-white text-xl">{percentage}%</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="flex gap-6">
+                    <button onClick={() => setActiveLifeline(null)} className="flex-1 h-20 bg-[#EF6637] text-white font-black text-xl rounded-2xl shadow-2xl uppercase tracking-widest font-serif italic">Go with the Community</button>
+                    <button onClick={() => setActiveLifeline(null)} className="flex-1 h-20 border-4 border-white/10 text-white/40 font-black text-xl rounded-2xl hover:bg-white/5 uppercase tracking-widest font-serif italic">Trust Yourself</button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.models.player import Player
+from app.models.player_game_lifeline import PlayerGameLifeline
 from app.models.question import Question
 from app.models.answer import Answer
 from app.models.phone_a_peer_hint import PhoneAPeerHint
@@ -20,19 +21,15 @@ import json
 def use_fifty_fifty(
     game_id: int, question_id: int, player: Player, db: Session
 ) -> FiftyFiftyResponse:
-    if not player.lifeLine5050:
+    pgl = db.query(PlayerGameLifeline).filter(PlayerGameLifeline.GameId == game_id, PlayerGameLifeline.PlayerId == player.PlayerId).first()
+    if not pgl or not pgl.lifeLine5050:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="50/50 lifeline already used",
+            detail="50/50 lifeline already used or not available",
         )
 
     # Use stored procedure:
     # CALL sp_UseLifeline(IN p_GameId, IN p_PlayerId, IN p_QuestionId, IN p_lifelineType, OUT p_result)
-    # Note: sp_UseLifeline expects GameId, but FiftyFiftyResponse doesn't pass it.
-    # For now we'll pass 0 as game_id if not available, but sp_UseLifeline should ideally be called with real GameId.
-    # If we don't have GameId here, we might need to adjust the procedure or the service.
-    # Looking at sp_UseLifeline, it doesn't actually USE p_GameId for 5050, Phone or Notes.
-
     result = db.execute(
         text("CALL sp_UseLifeline(:gid, :pid, :qid, '5050', NULL)"),
         {"gid": game_id, "pid": player.PlayerId, "qid": question_id}
@@ -69,10 +66,11 @@ def use_fifty_fifty(
 def use_sage_hint(
     game_id: int, question_id: int, player: Player, db: Session
 ) -> SageHintResponse:
-    if not player.lifeLineNotes:
+    pgl = db.query(PlayerGameLifeline).filter(PlayerGameLifeline.GameId == game_id, PlayerGameLifeline.PlayerId == player.PlayerId).first()
+    if not pgl or not pgl.lifeLineNotes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Sayings of the Sage lifeline already used",
+            detail="Sayings of the Sage lifeline already used or not available",
         )
 
     question = _get_question_or_404(question_id, db)
@@ -95,10 +93,11 @@ def use_sage_hint(
 def use_phone_a_peer(
     game_id: int, question_id: int, player: Player, db: Session
 ) -> PhoneAPeerResponse:
-    if not player.lifeLinePhone:
+    pgl = db.query(PlayerGameLifeline).filter(PlayerGameLifeline.GameId == game_id, PlayerGameLifeline.PlayerId == player.PlayerId).first()
+    if not pgl or not pgl.lifeLinePhone:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Phone a Peer lifeline already used",
+            detail="Phone a Peer lifeline already used or not available",
         )
 
     _get_question_or_404(question_id, db)
@@ -137,8 +136,9 @@ def submit_ask_the_class_vote(
         )
         db.add(vote)
 
-    if player.lifeLineAskClass:
-        player.lifeLineAskClass = False
+    pgl = db.query(PlayerGameLifeline).filter(PlayerGameLifeline.GameId == request.GameId, PlayerGameLifeline.PlayerId == player.PlayerId).first()
+    if pgl and pgl.lifeLineAskClass:
+        pgl.lifeLineAskClass = False
 
     db.commit()
     return get_ask_the_class_results(request.GameId, request.QuestionId, db)

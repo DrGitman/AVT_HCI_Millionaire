@@ -38,3 +38,35 @@ BEGIN
   FROM aggregates;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION fn_GetPlayerProfile(
+  p_PlayerId INTEGER
+)
+RETURNS TABLE (
+  username VARCHAR,
+  name VARCHAR,
+  level INTEGER,
+  prestigePoints INTEGER,
+  accuracy NUMERIC,
+  totalGames INTEGER,
+  rank INTEGER,
+  lastActive TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.username,
+    p.name,
+    (l."bestScore" / 100000) + 1 AS level, -- Example level logic
+    l."bestScore" AS prestigePoints,
+    CASE WHEN l."totalCorrect" > 0 THEN (l."totalCorrect"::NUMERIC / (l."totalGames" * 15)::NUMERIC) * 100 ELSE 0 END AS accuracy,
+    l."totalGames",
+    l."rank",
+    l."updatedAt" AS lastActive
+  FROM "Player" p
+  JOIN "Leaderboard" l ON l."PlayerId" = p."PlayerId"
+  WHERE p."PlayerId" = p_PlayerId;
+END;
+$$;

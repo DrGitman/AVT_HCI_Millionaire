@@ -18,10 +18,6 @@ class PhoneAPeerHint(Base):
 
     # Relationships
     question: Mapped["Question"] = relationship("Question", back_populates="phone_hints")
-    players_used: Mapped[list["Player"]] = relationship(
-        "Player", back_populates="phone_hint_result",
-        foreign_keys="Player.lifeLinePhoneResult"
-    )
 
     def __repr__(self) -> str:
         return (

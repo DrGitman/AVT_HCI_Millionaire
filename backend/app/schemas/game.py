@@ -10,6 +10,8 @@ class GameCreateRequest(BaseModel):
     player4Id: int | None = None
     categoryIds: list[int] = []
     maxPlayers: int = 4
+    gameMode: str = "Real-Time Speed"
+    timeLimit: int = 45
 
 class GameResponse(BaseModel):
     GameId: int
@@ -20,6 +22,8 @@ class GameResponse(BaseModel):
     player3: int | None
     player4: int | None
     maxPlayers: int
+    gameMode: str
+    timeLimit: int
     winner: int | None
     startTime: datetime | None
     endTime: datetime | None

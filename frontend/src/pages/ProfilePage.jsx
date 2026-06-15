@@ -146,17 +146,17 @@ const ProfilePage = ({ onNavigate }) => {
                   Current Standing
                 </p>
                 <h2 className="text-[#EF6637] font-serif text-[64px] font-black mb-12 leading-none italic tracking-tighter">
-                  Tier 3 Researcher
+                  Tier {player.level} Scholar
                 </h2>
                 <div className="space-y-6 max-w-md">
                   <div className="flex justify-between text-[14px] font-black uppercase tracking-[0.2em] font-sans">
                     <span className="text-[#F5F2F0]/40">Promotion Progress</span>
-                    <span className="text-[#F0A844] text-[18px]">74%</span>
+                    <span className="text-[#F0A844] text-[18px]">{(player.prestige % 100000 / 1000).toFixed(0)}%</span>
                   </div>
                   <div className="h-[12px] bg-black/40 rounded-full overflow-hidden p-1">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: '74%' }}
+                      animate={{ width: `${(player.prestige % 100000 / 1000)}%` }}
                       transition={{ duration: 1.5, ease: 'easeOut' }}
                       className="h-full bg-gradient-to-r from-[#EF6637] to-[#F0A844] rounded-full shadow-[0_0_15px_rgba(239,102,55,0.5)]"
                     />
@@ -164,7 +164,7 @@ const ProfilePage = ({ onNavigate }) => {
                 </div>
               </div>
               <div className="shrink-0 md:text-right flex flex-col items-start md:items-end">
-                <p className="text-[#F0A844] font-serif text-[64px] font-black tracking-tighter leading-none italic">$14,500,000</p>
+                <p className="text-[#F0A844] font-serif text-[64px] font-black tracking-tighter leading-none italic">${player.prestige.toLocaleString()}</p>
                 <p className="text-[#F5F2F0]/20 text-[14px] font-black tracking-[0.3em] uppercase mt-4 font-sans">
                   Lifetime Prestige
                 </p>
